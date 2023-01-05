@@ -1,0 +1,3 @@
+cd /home/chenz11/data/goldfish/11549472/sergey_canu70x/arrow/ohnolog/fish17.blastn
+mkdir out5_1
+../../czl_ohno_syn --mask-dup 5 5 -it in3.tree -ie in5.edge -ia ZF:/home/chenz11/data/ensembl85/bgp/Danio_rerio.GRCz10.85.bgp -ia CC:/home/chenz11/data/common_carp/NCBI_Cyprinus_carpio/ref_common_carp_genome_top_level.rename_chr.re_id.gff3.bgp -ia GF:/home/chenz11/data/goldfish/11549472/sergey_canu70x/arrow/carAur03/big/carAur03.noM.gene.unmasked.bgp  -ia GC:/home/chenz11/data/grass_carp/ng/Ctenopharyngodon_idellus_female/C_idella_female.LG.v1.gmap.ok.bgp -ic in3.chr_match -o out4.1/ --pairwise --score-type 1 > out4.1/stdout 2>out4.1/stderr

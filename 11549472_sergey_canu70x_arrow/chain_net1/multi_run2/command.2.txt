@@ -1,0 +1,720 @@
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_GC_CC_GF.input -sp ZF_GC_CC_GF.netSubset_pairs.input -o ZF_GC_CC_GF.netSubset.out --dry -t ZF_GC_CC_GF.tree  --ref GF
+#~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_GC_CC.input -sp ZF_GC_CC.netSubset_pairs.input -o ZF_GC_CC.netSubset.out --dry -t ZF_GC_CC.tree  --ref CC
+#~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_GC_GF.input -sp ZF_GC_GF.netSubset_pairs.input -o ZF_GC_GF.netSubset.out --dry -t ZF_GC_GF.tree  --ref GF
+#~/my_program3/src/ohnolog/czl_chain_multi4.pl -s GC_CC_GF.input -sp GC_CC_GF.netSubset_pairs.input -o GC_CC_GF.netSubset.out --dry -t GC_CC_GF.tree  --ref GF
+#~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_CC_GF.input -sp ZF_CC_GF.netSubset_pairs.input -o ZF_CC_GF.netSubset.out --dry -t ZF_CC_GF.tree  --ref GF
+
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_GC_CC_GF.input -sp ZF_GC_CC_GF.netSubset_pairs.input2 -o ZF_GC_CC_GF.netSubset.out2 --dry -t ZF_GC_CC_GF.tree  --ref GF
+
+~/my_program3/src/ohnolog/czl_chain_multi4.v2.pl -s GF_GF.input -sp GF_GF.netSubset_pairs.input -o GF_GF.netSubset.out/ --dry -t GF_GF.nw
+~/my_program3/src/ohnolog/czl_chain_multi4.v2.pl -s ZF_GF.input -sp ZF_GF.netSubset_pairs.input -o ZF_GF.netSubset.out/ --dry -t ZF_GF.nw
+~/my_program3/src/ohnolog/czl_chain_multi4.v2.pl -s GC_GF.input -sp GC_GF.netSubset_pairs.input -o GC_GF.netSubset.out/ --dry -t GC_GF.nw
+~/my_program3/src/ohnolog/czl_chain_multi4.v2.pl -s CC_GF.input -sp CC_GF.netSubset_pairs.input -o CC_GF.netSubset.out/ --dry -t CC_GF.nw
+
+~/my_program3/src/ohnolog/czl_chain_multi4.v2.pl -s GF_GF.input -sp GF_GF.no_het.netSubset_pairs.input -o GF_GF.no_het.netSubset.out/ --dry -t GF_GF.nw
+
+
+####################################################
+# remove repeat and exon region, and heterozygous for GF
+####################################################
+cd ZF_GC_CC_GF.netSubset.out
+for sp in ZF GC CC GF
+do
+bed=../../../carAur03/big/$sp.repeat_exon.1.bed 
+#if [ "$sp" == "CC" ]; then bed="$bed ../../carp_ncbi.vs.carp_ncbi/all.target.syn.net.chain.20.d5.bed3" ; fi
+#if [ "$sp" == "GF" ]; then bed="$bed ../../carAur03.vs.carAur03/all.target.syn.net.no_het.chain.20.d5.bed3" ; fi
+bedtools subtract -a all.orig.roast_multic_$sp.$sp.phastcons.1.bed -b $bed | awk '$3-$2>=20' | bedtools sort -i stdin > all.orig.roast_multic_$sp.$sp.phastcons.not_RE.1.bed 
+bedtools intersect -nonamecheck -a all.orig.roast_multic_$sp.$sp.phastcons.1.bed -b $bed -wao      | awk -v chr="" -v OFS=$'\t' '$7=="." {print $1,$2,$3,$4,$5,$6} $7!="." { if (chr==$1 && b==$2 && e==$3) {n+=$10} else { if (chr!="" && n<(e-b)*0.5) print chr,b,e,id,s,o; chr=$1; b=$2; e=$3; id=$4; s=$5; o=$6; n=$10;} } END{if (n<(e-b)*0.5) print chr,b,e,id,s,o;}'     | awk '$3-$2>=20' | bedtools sort -i stdin > all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed 
+done
+if ! [ -f all.orig.roast_multic_GF.GF.phastcons.not_RE.1.0.bed ]; then cat all.orig.roast_multic_GF.GF.phastcons.not_RE.1.bed | sort -k1,1 -k2,2n > all.orig.roast_multic_GF.GF.phastcons.not_RE.1.0.bed ; fi
+join -v 1 -j 1 -t $'\t' all.orig.roast_multic_GF.GF.phastcons.not_RE.1.0.bed /data/projects/burgess/zelin/goldfish/11549472/sergey_canu70x/arrow/carAur01/carAur01.masked_ctg_id > all.orig.roast_multic_GF.GF.phastcons.not_RE.1.bed 
+if ! [ -f all.orig.roast_multic_GF.GF.phastcons.not_RE.2.0.bed ]; then sort -k1,1 -k2,2n all.orig.roast_multic_GF.GF.phastcons.not_RE.2.bed > all.orig.roast_multic_GF.GF.phastcons.not_RE.2.0.bed ; fi
+join -v 1 -j 1 -t $'\t' all.orig.roast_multic_GF.GF.phastcons.not_RE.2.0.bed /data/projects/burgess/zelin/goldfish/11549472/sergey_canu70x/arrow/carAur01/carAur01.masked_ctg_id > all.orig.roast_multic_GF.GF.phastcons.not_RE.2.bed 
+
+for sp in ZF GC CC GF
+do
+cut -f 1-3 all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed > all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed3
+~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i all.orig.roast_multic_$sp.no_het.no_ver.maf -o - -s $sp | bedtools intersect -nonamecheck -f 0.5 -a all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed3 -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq | cut -f 4 | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' > all.orig.roast_multic_$sp.no_het.no_ver.not_RE.maf 
+# ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i all.orig.roast_multic_$sp.no_het.no_ver.maf -o - -s $sp | bedtools intersect -nonamecheck -f 0.5 -r -a stdin -b all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed3 -wa -u | cut -f 4 | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' > all.orig.roast_multic_$sp.no_het.no_ver.not_RE.maf 
+# ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i all.orig.roast_multic_$sp.no_het.no_ver.maf -o - -s $sp | bedtools intersect -nonamecheck -a all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed3 -b stdin -wo | awk -F$'\t' -v chr="" '{ if (chr==$1 && b==$2 && e==$3) {n+=$8; a2=a2"\n"$4"\t"$5"\t"$6"\t"$7; } else { if (chr!="" && n>=(e-b)*0.5) print a2; chr=$1; b=$2; e=$3; n=$8; a2=$4"\t"$5"\t"$6"\t"$7;} } END{if (chr!="" && n>=(e-b)*0.5) print a2;}' | cut -f 4 | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' > all.orig.roast_multic_$sp.no_het.no_ver.not_RE.maf 
+cp all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed3 all.orig.roast_multic.$sp.phastcons.not_RE.2.bed3
+done
+
+echo '##maf version=1' > all.orig.roast_multic.no_het.no_ver.not_RE.maf ;
+cat all.orig.roast_multic_??.no_het.no_ver.not_RE.maf | grep -v '^#' >> all.orig.roast_multic.no_het.no_ver.not_RE.maf 
+for sp1 in ZF GC CC GF
+do
+	echo $sp1 > tmp.$sp1.sp
+    mafFilter -speciesFilter=tmp.$sp1.sp -reject=all.orig.roast_multic.no_het.no_ver.not_RE.maf.tmp1 all.orig.roast_multic.no_het.no_ver.not_RE.maf > all.orig.roast_multic.no_het.no_ver.not_RE.maf.tmp2; 
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i all.orig.roast_multic.no_het.no_ver.not_RE.maf -o - -s $sp1 | bedtools intersect -nonamecheck -f 0.5 -a all.orig.roast_multic.$sp1.phastcons.not_RE.2.bed3 -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq | cut -f 4 | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' > all.orig.roast_multic.no_het.no_ver.not_RE.maf.tmp;
+#	~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i all.orig.roast_multic.no_het.no_ver.not_RE.maf.tmp2 -o - -s $sp1 | bedtools intersect -nonamecheck -f 0.5 -r -a stdin -b all.orig.roast_multic.$sp1.phastcons.not_RE.2.bed3 -wa -u | cut -f 4 | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' > all.orig.roast_multic.no_het.no_ver.not_RE.maf.tmp;
+#    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i all.orig.roast_multic.no_het.no_ver.not_RE.maf -o - -s $sp1 | bedtools intersect -nonamecheck -a stdin -b all.orig.roast_multic.$sp1.phastcons.not_RE.2.bed3 -wo | awk -F$'\t' -v OFS=$'\t' -v chr="" '{ if (chr==$1 && b==$2 && e==$3 && aa==$4) {n+=$8; } else { if (chr!="" && n>=(e-b)*0.5) print chr,b,e,aa; chr=$1; b=$2; e=$3; aa=$4; n=$8; } } END{if (chr!="" && n>=(e-b)*0.5) print chr,b,e,aa;}' | cut -f 4 | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' > all.orig.roast_multic.no_het.no_ver.not_RE.maf.tmp;
+	echo '##maf version=1' > all.orig.roast_multic.no_het.no_ver.not_RE.maf;
+	cat all.orig.roast_multic.no_het.no_ver.not_RE.maf.tmp all.orig.roast_multic.no_het.no_ver.not_RE.maf.tmp1 | grep -v '^#' >> all.orig.roast_multic.no_het.no_ver.not_RE.maf;
+done
+for sp in ZF GC CC GF
+do
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i all.orig.roast_multic.no_het.no_ver.not_RE.maf -o - -s $sp | cut -f 1-3 | bedtools intersect -nonamecheck -f 0.5 -r -b stdin -a all.orig.roast_multic.$sp.phastcons.not_RE.2.bed3 > all.orig.roast_multic.$sp.phastcons.not_RE.2.bed3.tmp;    mv all.orig.roast_multic.$sp.phastcons.not_RE.2.bed3.tmp all.orig.roast_multic.$sp.phastcons.not_RE.2.bed3;
+	wc all.orig.roast_multic.$sp.phastcons.not_RE.2.bed3
+done
+#
+for sp in ZF GC CC GF
+do
+    cat all.orig.roast_multic_??.$sp.phastcons.not_RE.2.bed3 | sort -k1,1 -k2,2n | bedtools merge -i stdin > all.orig.roast_multic.$sp.phastcons.not_RE.2.bed3
+done
+rm all.orig.roast_multic_??.??.phastcons.not_RE.2.bed3
+
+
+>CNE.counts.txt
+>CNE.not_RE.counts.txt
+>CNE.not_RE.counts.2.txt
+for sp in ZF GC CC GF
+do
+    cat all.orig.roast_multic_$sp.$sp.phastcons.1.bed | awk -F$'\t' -v OFS=$'\t' -v sp=$sp -v n=0 -v m=0 '{n++;m+=$3-$2} END{print sp,n,m}' >> CNE.counts.txt
+    cat all.orig.roast_multic_$sp.$sp.phastcons.not_RE.1.bed | awk -F$'\t' -v OFS=$'\t' -v sp=$sp -v n=0 -v m=0 '{n++;m+=$3-$2} END{print sp,n,m}' >> CNE.not_RE.counts.txt
+    cat all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed | awk -F$'\t' -v OFS=$'\t' -v sp=$sp -v n=0 -v m=0 '{n++;m+=$3-$2} END{print sp,n,m}' >> CNE.not_RE.counts.2.txt
+done
+
+
+####################################################
+# remove heterozygous region from MAF
+####################################################
+for sp in ZF GC GF CC
+do
+    cat all.orig.roast_multic_$sp.maf | mafFilter -minScore=1000  stdin | perl -e '
+    my %mask;
+    open IN, "<../../../carAur01/carAur01.masked_ctg_id";
+    while(<IN>) { if (m/^#/ || m/^\s*$/) {next;} chomp; $mask{$_}++; }
+    close IN; 
+    my @a; 
+    my $filt=0;
+    while(<>) {
+        if (m/^#/) {print $_; next;} chomp;
+        if (m/^\s*$/) {
+            if (!$filt) {
+                foreach my $a (@a) { print $a, "\n"; }
+                print "\n";
+            }
+            @a=();
+            $filt=0;
+        } elsif (m/^s/) {
+            my @t = split / +/, $_;
+            my ($sp,$chr) = split /\./, $t[1], 2;
+            if ($sp=~m/^GF/ && exists $mask{$chr}) { $filt=1; @a=();}
+            if ($filt==0) { push @a,$_; }
+        } else {
+            if ($filt==0) { push @a,$_; }
+        }
+    }' > all.orig.roast_multic_$sp.no_het.maf
+    cat all.orig.roast_multic_$sp.no_het.maf | sed 's/\(NW_[0-9]\+\)\.[0-9]\+/\1/' > all.orig.roast_multic_$sp.no_het.no_ver.maf 
+
+#    mkdir all.orig.roast_multic_$sp.no_het.maf.split_by_sp;
+#    ~/my_program3/src/utility/czl_maf_split_by_species.pl -i all.orig.roast_multic_$sp.no_het.maf -o all.orig.roast_multic_$sp.no_het.maf.split_by_sp/
+#    cd all.orig.roast_multic_$sp.no_het.maf.split_by_sp
+#    for f in `ls *.maf`
+#    do
+#        ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $f -o - -s $sp | cut -f 1-3 | sort -k1,1 -k2,2n > $f.bed
+#        bedtools subtract -a $f.bed -b /data/projects/burgess/zelin/goldfish/11549472/sergey_canu70x/arrow/carAur03/big/$sp.repeat_exon.1.bed | awk '$3-$2>=20' > $f.not_RE.bed
+done
+
+#################
+# split by species groups
+#################
+cat all.orig.roast_multic_??.no_het.no_ver.maf | ~/my_program3/src/utility/czl_maf_split_by_species.pl -i - -o all.orig.roast_multic_merged.no_het.maf.split_by_sp/ --do-ovl
+
+#############################
+# transform MAF to BIGMAF
+#############################
+for sps in `cat sps`
+do
+for sp in `echo $sps | sed 's/_/ /g'`
+do 
+    echo $sps $sp; 
+    if ! [ -f "$sps.$sp.bigmaf" ]; then ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.maf -s $sp -o - | sort -S 8G -k1,1 -k2,2n > $sps.$sp.bigmaf ; fi
+done
+done
+
+###############################
+# fetch two copy and one copy for GF and CC
+###############################
+
+###############################
+# fetch most conserved CNE
+###############################
+for sps in `cat sps`
+do
+for sp in `echo $sps | sed 's/_/ /g'`
+do 
+echo $sps $sp; 
+for only in only only1
+do
+f=$sps.$sp.$only.bed
+f1=$sps.$sp.$only.not_RE.2.bed
+bedtools intersect -nonamecheck -f 0.5 -a ../all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed -b $f -wa -u | sort -k1,1 -k2,2n | awk '$1!~/^chrM/ && $1!="MT"' > $f1;
+f1=$sps.$sp.$only.not_RE.3.bed3
+bedtools intersect -nonamecheck -f 0.5 -a ../all.orig.roast_multic.$sp.phastcons.not_RE.2.bed3 -b $f -wa -u | sort -k1,1 -k2,2n | awk '$1!~/^chrM/ && $1!="MT"' > $f1;
+done; 
+done; 
+done;
+
+###############################
+# remove repeat and exon region from MAF
+###############################
+for sps in `cat sps`
+do
+    echo $sps
+    cp $sps.maf $sps.not_RE.maf
+    for sp in `echo $sps | sed 's/_/ /g'`
+    do 
+		echo '##maf version=1' > $sps.only1.not_RE.3.maf;
+		~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.not_RE.maf -o - -s $sp | bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.only1.not_RE.3.bed3 -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq | cut -f 4 | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' >> $sps.only1.not_RE.3.maf;
+#        ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.not_RE.maf -s $sp -o - | bedtools subtract -nonamecheck -A -f 0.5 -a stdin -b /data/projects/burgess/zelin/goldfish/11549472/sergey_canu70x/arrow/carAur03/big/$sp.repeat_exon.1.bed | cut -f 4 | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' > $sps.not_RE.maf.tmp; mv $sps.not_RE.maf.tmp $sps.not_RE.maf;
+    done
+done
+##
+
+for sps in `cat sps`
+do
+for sp in `echo $sps | sed 's/_/ /g'`
+do 
+    echo $sps $sp; 
+    for only in only only1
+    do
+        f=${only}_not_RE/$sps.$sp.$only.not_RE.2.bed
+        f1=${only}_not_RE/$sps.$sp.$only.not_RE.less.2.bed
+        ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.not_RE.maf -s $sp -o - | bedtools intersect -nonamecheck -f 0.2 -a $f -b stdin -wa -u > $f1
+    done
+done
+done
+
+
+only=only1
+for sps in `cat sps`
+do
+
+cc=`echo $sps | grep CC`;
+gf=`echo $sps | grep GF`;
+if [ -z "$cc" ]
+then
+    if ! [ -z "$gf" ]
+    then
+
+
+sps1=`echo $sps | sed 's/GF/GF1/'`;
+sps2=`echo $sps | sed 's/GF/GF2/'`;
+
+bedtools intersect -nonamecheck -a $sps.GF.$only.not_RE.3.bed3 -b ../../../carAur03.vs.carAur03/all.target.syn.net.no_het.chain.20.merged.bed3 -wo | awk -v chr="" -v OFS=$'\t' 'BEDIN{OFS="\t";} { if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n>=(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n>=(e-b)*0.3) print chr,b,e;} ' > $sps2.GF.$only.not_RE.3.bed3
+bedtools intersect -nonamecheck -a $sps.GF.$only.not_RE.3.bed3 -b ../../../carAur03.vs.carAur03/all.target.syn.net.no_het.chain.20.merged.bed3 -wao | awk -v chr="" -v OFS=$'\t' '$4=="." {print $1,$2,$3} $4!="." { if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n<(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n<(e-b)*0.3) print chr,b,e;}' > $sps1.GF.$only.not_RE.3.bed3
+# overlap at least 0.3 of *.GF.$only.not_RE.3.bed3
+
+echo '##maf version=1' >$sps2.$only.not_RE.3.maf;
+~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.$only.not_RE.3.maf -s GF -o - | bedtools intersect -nonamecheck -f 0.5 -a $sps2.GF.$only.not_RE.3.bed3 -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq | cut -f 4 |     awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' >> $sps2.$only.not_RE.3.maf
+echo '##maf version=1' >$sps1.$only.not_RE.3.maf;
+~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.$only.not_RE.3.maf -s GF -o - | bedtools intersect -nonamecheck -f 0.5 -a $sps1.GF.$only.not_RE.3.bed3 -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq | cut -f 4 |     awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' >> $sps1.$only.not_RE.3.maf
+# ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.$only.not_RE.3.maf -s GF -o - | bedtools intersect -nonamecheck -a $sps1.GF.$only.not_RE.3.bed3 -b stdin -wo | sort -k1,1 -k2,2n | awk -F$'\t' -v chr="" '{ if (chr==$1 && b==$2 && e==$3) {n+=$8; a2=a2"\n"$4"\t"$5"\t"$6"\t"$7; } else { if (chr!="" && n>=(e-b)*0.3) print a2; chr=$1; b=$2; e=$3; n=$8; a2=$4"\t"$5"\t"$6"\t"$7;} } END{if (chr!="" && n>=(e-b)*0.3) print a2;}' | sort -k1,1 -k2,2n | uniq > tmp.$sps1.GF.$only.not_RE.3.bigmaf
+
+for sp in `echo $sps | sed 's/_/ /g'`
+do
+#    if [ "$sp" == "GF" ]; then continue; fi
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps2.$only.not_RE.3.maf -o - -s $sp > tmp.$sps2.$sp.$only.not_RE.3.bigmaf
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps1.$only.not_RE.3.maf -o - -s $sp > tmp.$sps1.$sp.$only.not_RE.3.bigmaf
+
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.$only.not_RE.3.bed3 -b tmp.$sps2.$sp.$only.not_RE.3.bigmaf -wa -u | sort -k1,1 -k2,2n > $sps2.$sp.$only.not_RE.3.bed3
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.$only.not_RE.3.bed3 -b tmp.$sps1.$sp.$only.not_RE.3.bigmaf -wa -u | bedtools subtract -nonamecheck -f 0.5 -a stdin -b $sps2.$sp.$only.not_RE.3.bed3 | sort -k1,1 -k2,2n > $sps1.$sp.$only.not_RE.3.bed3
+
+#    bedtools subtract -nonamecheck -f 0.5 -A -a $sps.$sp.$only.not_RE.3.bed3 -b $sps2.$sp.$only.not_RE.3.bed3 > $sps1.$sp.$only.not_RE.3.bed3
+done
+
+rm tmp.$sps.* tmp.$sps1.* tmp.$sps2.*
+
+    fi
+else
+    if [ -z "$gf" ]
+    then
+
+sps1=`echo $sps | sed 's/CC/CC1/'`;
+sps2=`echo $sps | sed 's/CC/CC2/'`;
+
+#bedtools intersect -nonamecheck -f 0.1 -a $sps.CC.$only.not_RE.3.bed3 -b ../../../carp_ncbi.vs.carp_ncbi/all.target.syn.net.chain.20.no_ver.merged.bed3 -wa -u > $sps2.CC.$only.not_RE.3.bed3
+#bedtools subtract -nonamecheck -f 0.5 -A -a $sps.CC.$only.not_RE.3.bed3 -b $sps2.CC.$only.not_RE.3.bed3 > $sps1.CC.$only.not_RE.3.bed3
+#~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.$only.not_RE.3.maf -s CC -o - | bedtools intersect -nonamecheck -f 0.1 -a stdin -b $sps2.CC.$only.not_RE.3.bed3 -wa -u | sort -k1,1 -k2,2n > tmp.$sps2.CC.$only.not_RE.3.bigmaf
+#~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.$only.not_RE.3.maf -s CC -o - | bedtools intersect -nonamecheck -f 0.1 -a stdin -b $sps1.CC.$only.not_RE.3.bed3 -wa -u | sort -k1,1 -k2,2n > tmp.$sps1.CC.$only.not_RE.3.bigmaf
+
+bedtools intersect -nonamecheck -a $sps.CC.$only.not_RE.3.bed3 -b ../../../carp_ncbi.vs.carp_ncbi/all.target.syn.net.chain.20.no_ver.merged.bed3 -wo | awk -v chr="" -v OFS=$'\t' '{ if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n>=(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n>=(e-b)*0.3) print chr,b,e;} ' > $sps2.CC.$only.not_RE.3.bed3
+bedtools intersect -nonamecheck -a $sps.CC.$only.not_RE.3.bed3 -b ../../../carp_ncbi.vs.carp_ncbi/all.target.syn.net.chain.20.no_ver.merged.bed3 -wao | awk -v chr="" -v OFS=$'\t' '$4=="." {print $1,$2,$3} $4!="." { if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n<(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n<(e-b)*0.3) print chr,b,e;}' > $sps1.CC.$only.not_RE.3.bed3
+# overlap at least 0.5 of *.CC.$only.not_RE.3.bed3
+echo '##maf version=1' >$sps2.$only.not_RE.3.maf;
+~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.$only.not_RE.3.maf -s CC -o - | bedtools intersect -nonamecheck -f 0.5 -a $sps2.CC.$only.not_RE.3.bed3 -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq | cut -f 4 |     awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' >> $sps2.$only.not_RE.3.maf
+echo '##maf version=1' >$sps1.$only.not_RE.3.maf;
+~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.$only.not_RE.3.maf -s CC -o - | bedtools intersect -nonamecheck -f 0.5 -a $sps1.CC.$only.not_RE.3.bed3 -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq | cut -f 4 |     awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' >> $sps1.$only.not_RE.3.maf
+
+for sp in `echo $sps | sed 's/_/ /g'`
+do
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps2.$only.not_RE.3.maf -o - -s $sp | sort -k1,1 -k2,2n > tmp.$sps2.$sp.$only.not_RE.3.bigmaf
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps1.$only.not_RE.3.maf -o - -s $sp | sort -k1,1 -k2,2n > tmp.$sps1.$sp.$only.not_RE.3.bigmaf
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.$only.not_RE.3.bed3 -b tmp.$sps2.$sp.$only.not_RE.3.bigmaf -wa -u | sort -k1,1 -k2,2n > $sps2.$sp.$only.not_RE.3.bed3
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.$only.not_RE.3.bed3 -b tmp.$sps1.$sp.$only.not_RE.3.bigmaf -wa -u | bedtools subtract -nonamecheck -f 0.5 -a stdin -b $sps2.$sp.$only.not_RE.3.bed3 | sort -k1,1 -k2,2n > $sps1.$sp.$only.not_RE.3.bed3
+done
+
+rm tmp.$sps.* tmp.$sps1.* tmp.$sps2.*
+
+
+    else
+
+sps11=`echo $sps | sed -e 's/CC/CC1/' -e 's/GF/GF1/'`;
+sps12=`echo $sps | sed -e 's/CC/CC1/' -e 's/GF/GF2/'`;
+sps21=`echo $sps | sed -e 's/CC/CC2/' -e 's/GF/GF1/'`;
+sps22=`echo $sps | sed -e 's/CC/CC2/' -e 's/GF/GF2/'`;
+
+# bedtools intersect -nonamecheck -f 0.1 -a $sps.GF.${only}.not_RE.3.bed3 -b ../../../carAur03.vs.carAur03/all.target.syn.net.no_het.chain.20.merged.bed3 -wa -u > tmp.$sps.GF.two.${only}.not_RE.bed
+# bedtools subtract -nonamecheck -f 0.5 -a $sps.GF.${only}.not_RE.3.bed3 -b tmp.$sps.GF.two.${only}.not_RE.bed > tmp.$sps.GF.one.${only}.not_RE.bed
+
+bedtools intersect -nonamecheck -a $sps.GF.$only.not_RE.3.bed3 -b ../../../carAur03.vs.carAur03/all.target.syn.net.no_het.chain.20.merged.bed3 -wo | awk -v chr="" -v OFS=$'\t' 'BEDIN{OFS="\t";} { if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n>=(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n>=(e-b)*0.3) print chr,b,e;} ' > tmp.$sps.GF.two.${only}.not_RE.bed
+bedtools intersect -nonamecheck -a $sps.GF.$only.not_RE.3.bed3 -b ../../../carAur03.vs.carAur03/all.target.syn.net.no_het.chain.20.merged.bed3 -wao | awk -v chr="" -v OFS=$'\t' '$4=="." {print $1,$2,$3} $4!="." { if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n<(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n<(e-b)*0.3) print chr,b,e;}' > tmp.$sps.GF.one.${only}.not_RE.bed
+
+#bedtools intersect -nonamecheck -f 0.1 -a $sps.CC.${only}.not_RE.3.bed3 -b ../../../carp_ncbi.vs.carp_ncbi/all.target.syn.net.chain.20.no_ver.merged.bed3 -wa -u > tmp.$sps.CC.two.${only}.not_RE.bed
+#bedtools subtract -nonamecheck -f 0.5 -a $sps.CC.${only}.not_RE.2.bed -b tmp.$sps.CC.two.${only}.not_RE.bed > tmp.$sps.CC.one.${only}.not_RE.bed
+
+bedtools intersect -nonamecheck -a $sps.CC.$only.not_RE.3.bed3 -b ../../../carp_ncbi.vs.carp_ncbi/all.target.syn.net.chain.20.no_ver.merged.bed3 -wo | awk -v chr="" -v OFS=$'\t' 'BEDIN{OFS="\t";} { if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n>=(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n>=(e-b)*0.3) print chr,b,e;} ' > tmp.$sps.CC.two.${only}.not_RE.bed
+bedtools intersect -nonamecheck -a $sps.CC.$only.not_RE.3.bed3 -b ../../../carp_ncbi.vs.carp_ncbi/all.target.syn.net.chain.20.no_ver.merged.bed3 -wao | awk -v chr="" -v OFS=$'\t' '$4=="." {print $1,$2,$3} $4!="." { if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n<(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n<(e-b)*0.3) print chr,b,e;}' > tmp.$sps.CC.one.${only}.not_RE.bed
+
+
+#~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.$only.not_RE.3.maf -s GF -o - | bedtools intersect -nonamecheck -f 0.1 -a stdin -b tmp.$sps.GF.two.$only.not_RE.bed -wa -u | bedtools subtract -nonamecheck -A -f 0.1 -a stdin -b tmp.$sps.GF.one.$only.not_RE.bed | sort -k1,1 -k2,2n > tmp.$sps.GF.two.GF.bigmaf
+#~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.$only.not_RE.3.maf -s GF -o - | bedtools intersect -nonamecheck -f 0.1 -a stdin -b tmp.$sps.GF.one.$only.not_RE.bed -wa -u | bedtools subtract -nonamecheck -A -f 0.1 -a stdin -b tmp.$sps.GF.two.$only.not_RE.bed | sort -k1,1 -k2,2n > tmp.$sps.GF.one.GF.bigmaf
+
+~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.$only.not_RE.3.maf -s GF -o - | bedtools intersect -nonamecheck -f 0.5 -a -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq | cut -f 7 |     awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' >> $sps2.$only.not_RE.3.maf
+~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.$only.not_RE.3.maf -s GF -o - | bedtools intersect -nonamecheck -f 0.5 -a tmp.$sps.GF.two.$only.not_RE.bed -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq > tmp.$sps.GF.two.GF.bigmaf
+~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.$only.not_RE.3.maf -s GF -o - | bedtools intersect -nonamecheck -f 0.5 -a tmp.$sps.GF.one.$only.not_RE.bed -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq > tmp.$sps.GF.one.GF.bigmaf
+
+cut -f 4 tmp.$sps.GF.two.GF.bigmaf | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' | ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i - -o - -s CC > tmp.$sps.GF.two.CC.bigmaf;
+cut -f 4 tmp.$sps.GF.one.GF.bigmaf | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' | ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i - -o - -s CC > tmp.$sps.GF.one.CC.bigmaf;
+
+
+# bedtools intersect -nonamecheck -f 0.1 -a tmp.$sps.GF.two.CC.bigmaf -b tmp.$sps.CC.two.${only}.not_RE.bed -wa -u -nonamecheck | bedtools subtract -nonamecheck -A -f 0.1 -a stdin -b tmp.$sps.CC.one.${only}.not_RE.bed | sort -k1,1 -k2,2n > tmp.$sps.two_two.CC.bigmaf
+# bedtools intersect -nonamecheck -f 0.1 -a tmp.$sps.GF.one.CC.bigmaf -b tmp.$sps.CC.one.${only}.not_RE.bed -wa -u -nonamecheck | bedtools subtract -nonamecheck -A -f 0.1 -a stdin -b tmp.$sps.CC.two.${only}.not_RE.bed | sort -k1,1 -k2,2n > tmp.$sps.one_one.CC.bigmaf
+# bedtools intersect -nonamecheck -f 0.1 -a tmp.$sps.GF.two.CC.bigmaf -b tmp.$sps.CC.one.${only}.not_RE.bed -wa -u -nonamecheck | bedtools subtract -nonamecheck -A -f 0.1 -a stdin -b tmp.$sps.CC.two.${only}.not_RE.bed | sort -k1,1 -k2,2n > tmp.$sps.one_two.CC.bigmaf
+# bedtools intersect -nonamecheck -f 0.1 -a tmp.$sps.GF.one.CC.bigmaf -b tmp.$sps.CC.two.${only}.not_RE.bed -wa -u -nonamecheck | bedtools subtract -nonamecheck -A -f 0.1 -a stdin -b tmp.$sps.CC.one.${only}.not_RE.bed | sort -k1,1 -k2,2n > tmp.$sps.two_one.CC.bigmaf
+
+bedtools intersect -nonamecheck -f 0.5 -a tmp.$sps.CC.two.${only}.not_RE.bed -b tmp.$sps.GF.two.CC.bigmaf -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq > tmp.$sps.two_two.CC.bigmaf
+bedtools intersect -nonamecheck -f 0.5 -a tmp.$sps.CC.one.${only}.not_RE.bed -b tmp.$sps.GF.one.CC.bigmaf -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq > tmp.$sps.one_one.CC.bigmaf
+bedtools intersect -nonamecheck -f 0.5 -a tmp.$sps.CC.two.${only}.not_RE.bed -b tmp.$sps.GF.one.CC.bigmaf -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq > tmp.$sps.two_one.CC.bigmaf
+bedtools intersect -nonamecheck -f 0.5 -a tmp.$sps.CC.one.${only}.not_RE.bed -b tmp.$sps.GF.two.CC.bigmaf -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq > tmp.$sps.one_two.CC.bigmaf
+
+cut -f 4 tmp.$sps.two_two.CC.bigmaf | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' > $sps22.${only}.not_RE.3.maf;
+cut -f 4 tmp.$sps.one_one.CC.bigmaf | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' > $sps11.${only}.not_RE.3.maf;
+cut -f 4 tmp.$sps.two_one.CC.bigmaf | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' > $sps21.${only}.not_RE.3.maf;
+cut -f 4 tmp.$sps.one_two.CC.bigmaf | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' > $sps12.${only}.not_RE.3.maf;
+
+
+for sp in `echo $sps | sed 's/_/ /g'`
+do
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps22.$only.not_RE.3.maf -o - -s $sp | sort -k1,1 -k2,2n > tmp.$sps22.$sp.$only.not_RE.3.bigmaf
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps11.$only.not_RE.3.maf -o - -s $sp | sort -k1,1 -k2,2n > tmp.$sps11.$sp.$only.not_RE.3.bigmaf
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps21.$only.not_RE.3.maf -o - -s $sp | sort -k1,1 -k2,2n > tmp.$sps21.$sp.$only.not_RE.3.bigmaf
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps12.$only.not_RE.3.maf -o - -s $sp | sort -k1,1 -k2,2n > tmp.$sps12.$sp.$only.not_RE.3.bigmaf
+
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.$only.not_RE.3.bed3 -b tmp.$sps22.$sp.$only.not_RE.3.bigmaf -wa -u | sort -k1,1 -k2,2n > $sps22.$sp.$only.not_RE.3.bed3
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.$only.not_RE.3.bed3 -b tmp.$sps11.$sp.$only.not_RE.3.bigmaf -wa -u | bedtools subtract -nonamecheck -a stdin -b $sps22.$sp.$only.not_RE.3.bed3 | sort -k1,1 -k2,2n > $sps11.$sp.$only.not_RE.3.bed3
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.$only.not_RE.3.bed3 -b tmp.$sps21.$sp.$only.not_RE.3.bigmaf -wa -u | bedtools subtract -nonamecheck -a stdin -b $sps22.$sp.$only.not_RE.3.bed3 $sps11.$sp.$only.not_RE.3.bed3 | sort -k1,1 -k2,2n > $sps21.$sp.$only.not_RE.3.bed3
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.$only.not_RE.3.bed3 -b tmp.$sps12.$sp.$only.not_RE.3.bigmaf -wa -u | bedtools subtract -nonamecheck -a stdin -b $sps22.$sp.$only.not_RE.3.bed3 $sps11.$sp.$only.not_RE.3.bed3 | sort -k1,1 -k2,2n > $sps12.$sp.$only.not_RE.3.bed3
+
+done
+
+rm tmp.$sps.*
+rm tmp.$sps11.*
+rm tmp.$sps12.*
+rm tmp.$sps21.*
+rm tmp.$sps22.*
+
+    fi
+fi
+done
+
+
+
+
+##############################################
+# get counts
+##############################################
+# {{{
+
+>CNE.not_RE.counts.2.txt
+>CNE.not_RE.bp.2.txt
+for t in `cat sps`
+do
+out1=$t
+out2=$t
+for sp in CC GC GF ZF
+do
+    a=`echo $t | grep $sp`;
+    f=$t.$sp.only.not_RE.2.bed
+    if [ -z "$a" ]; then n=0; m=0; else n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+    out1=$out1$'\t'$n
+    out2=$out2$'\t'$m
+done
+echo "$out1" >> CNE.not_RE.counts.2.txt
+echo "$out2" >> CNE.not_RE.bp.2.txt
+done
+
+>CNE1.not_RE.counts.2.txt
+>CNE1.not_RE.bp.2.txt
+for t in `cat sps`
+do
+out1=$t
+out2=$t
+for sp in CC GC GF ZF
+do
+    a=`echo $t | grep $sp`;
+    f=$t.$sp.only1.not_RE.3.bed3
+    if [ -z "$a" ]; then n=0; m=0; else n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+    out1=$out1$'\t'$n
+    out2=$out2$'\t'$m
+done
+echo "$out1" >> CNE1.not_RE.counts.2.txt
+echo "$out2" >> CNE1.not_RE.bp.2.txt
+done
+
+>CNE1.not_RE.less.counts.2.txt
+>CNE1.not_RE.less.bp.2.txt
+for t in `cat sps`
+do
+out1=$t
+out2=$t
+for sp in CC GC GF ZF
+do
+    a=`echo $t | grep $sp`;
+    f=only1_not_RE/$t.$sp.only1.not_RE.less.2.bed
+    if [ -z "$a" ]; then n=0; m=0; else n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+    out1=$out1$'\t'$n
+    out2=$out2$'\t'$m
+done
+echo "$out1" >> CNE1.not_RE.less.counts.2.txt
+echo "$out2" >> CNE1.not_RE.less.bp.2.txt
+done
+
+only=only1
+>CNE1.not_RE.counts.3.txt
+>CNE1.not_RE.bp.3.txt
+for t0 in `cat sps`
+do
+cc=`echo $t0 | grep CC`;
+gf=`echo $t0 | grep GF`;
+if [ -z "$cc" ];
+then
+    if [ -z "$gf" ];
+    then
+        out1=$t0
+        out2=$t0
+        t=$t0;
+        for sp in CC GC GF ZF
+        do
+            a=`echo $t | grep $sp`;
+            f=$t.$sp.${only}.not_RE.3.bed3
+            if [ -z "$a" ]; then n=0; m=0; else n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+            out1=$out1$'\t'$n
+            out2=$out2$'\t'$m
+        done
+        echo "$out1" >> CNE1.not_RE.counts.3.txt
+        echo "$out2" >> CNE1.not_RE.bp.3.txt
+    else
+        for k in 1 2
+        do
+            t=`echo $t0 | sed 's/GF/GF'$k'/'`
+            out1=$t
+            out2=$t
+            for sp in CC GC GF ZF
+            do
+                a=`echo $t | grep $sp`;
+                f=$t.$sp.${only}.not_RE.3.bed3
+                if [ -z "$a" ]; then n=0; m=0; else n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+                out1=$out1$'\t'$n
+                out2=$out2$'\t'$m
+            done
+            echo "$out1" >> CNE1.not_RE.counts.3.txt
+            echo "$out2" >> CNE1.not_RE.bp.3.txt
+        done
+    fi
+else
+    if [ -z "$gf" ];
+    then
+
+        for k in 1 2
+        do
+            t=`echo $t0 | sed 's/CC/CC'$k'/'`
+            out1=$t
+            out2=$t
+            for sp in CC GC GF ZF
+            do
+                a=`echo $t | grep $sp`;
+                f=$t.$sp.${only}.not_RE.3.bed3
+                if [ -z "$a" ]; then n=0; m=0; else n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+                out1=$out1$'\t'$n
+                out2=$out2$'\t'$m
+            done
+            echo "$out1" >> CNE1.not_RE.counts.3.txt
+            echo "$out2" >> CNE1.not_RE.bp.3.txt
+        done
+    else
+        for k1 in 1 2
+        do
+        for k2 in 1 2
+        do
+            t=`echo $t0 | sed 's/CC/CC'$k1'/' | sed 's/GF/GF'$k2'/'`
+
+            out1=$t
+            out2=$t
+            for sp in CC GC GF ZF
+            do
+                a=`echo $t | grep $sp`;
+                f=$t.$sp.${only}.not_RE.3.bed3
+                if [ -z "$a" ]; then n=0; m=0; else n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+                out1=$out1$'\t'$n
+                out2=$out2$'\t'$m
+            done
+            echo "$out1" >> CNE1.not_RE.counts.3.txt
+            echo "$out2" >> CNE1.not_RE.bp.3.txt
+        done
+        done
+    fi
+fi
+
+done
+
+# }}}
+
+
+
+######################################
+# run 3
+######################################
+# {{{
+
+~/my_program3/src/utility/czl_maf_split_by_species.v2.pl -i all.orig.roast_multic.no_het.no_ver.not_RE.maf -o all.orig.roast_multic.no_het.not_RE.maf.split_by_sp/
+
+###############################
+# fetch most conserved CNE
+###############################
+for sps in `cat sps`
+do
+for sp in `echo $sps | sed 's/_/ /g'`
+do 
+	echo $sps $sp; 
+	~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.maf -s $sp -o - | bedtools intersect -nonamecheck -f 0.5 -a ../all.orig.roast_multic.$sp.phastcons.not_RE.2.bed3 -b stdin -wa -u | sort -k1,1 -k2,2n | awk '$1!~/^chrM/ && $1!="MT"' | bedtools merge -i stdin > $sps.$sp.not_RE.3.bed3
+done; 
+done;
+
+################################
+# one copy lost
+################################
+# {{{
+for sps in `cat sps`
+do
+
+cc=`echo $sps | grep CC`;
+gf=`echo $sps | grep GF`;
+if [ -z "$cc" ]
+then
+    if ! [ -z "$gf" ]
+    then
+
+sps1=`echo $sps | sed 's/GF/GF1/'`;
+sps2=`echo $sps | sed 's/GF/GF2/'`;
+
+bedtools intersect -nonamecheck -a $sps.GF.not_RE.3.bed3 -b ../../../carAur03.vs.carAur03/all.target.syn.net.no_het.chain.20.merged.bed3 -wo | awk -v chr="" -v OFS=$'\t' 'BEDIN{OFS="\t";} { if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n>=(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n>=(e-b)*0.3) print chr,b,e;} ' > $sps2.GF.not_RE.3.bed3
+bedtools intersect -nonamecheck -a $sps.GF.not_RE.3.bed3 -b ../../../carAur03.vs.carAur03/all.target.syn.net.no_het.chain.20.merged.bed3 -wao | awk -v chr="" -v OFS=$'\t' '$4=="." {print $1,$2,$3} $4!="." { if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n<(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n<(e-b)*0.3) print chr,b,e;}' > $sps1.GF.not_RE.3.bed3
+
+# overlap at least 0.3 of *.GF.not_RE.3.bed3
+echo '##maf version=1' >$sps2.maf;
+~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.maf -s GF -o - | bedtools intersect -nonamecheck -f 0.5 -a $sps2.GF.not_RE.3.bed3 -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq | cut -f 4 |     awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' >> $sps2.maf
+echo '##maf version=1' >$sps1.maf;
+~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.maf -s GF -o - | bedtools intersect -nonamecheck -f 0.5 -a $sps1.GF.not_RE.3.bed3 -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq | cut -f 4 |     awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' >> $sps1.maf
+# ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.maf -s GF -o - | bedtools intersect -nonamecheck -a $sps1.GF.not_RE.3.bed3 -b stdin -wo | sort -k1,1 -k2,2n | awk -F$'\t' -v chr="" '{ if (chr==$1 && b==$2 && e==$3) {n+=$8; a2=a2"\n"$4"\t"$5"\t"$6"\t"$7; } else { if (chr!="" && n>=(e-b)*0.3) print a2; chr=$1; b=$2; e=$3; n=$8; a2=$4"\t"$5"\t"$6"\t"$7;} } END{if (chr!="" && n>=(e-b)*0.3) print a2;}' | sort -k1,1 -k2,2n | uniq > tmp.$sps1.GF.bigmaf
+
+for sp in `echo $sps | sed 's/_/ /g'`
+do
+#    if [ "$sp" == "GF" ]; then continue; fi
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps2.maf -o - -s $sp > tmp.$sps2.$sp.bigmaf
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps1.maf -o - -s $sp > tmp.$sps1.$sp.bigmaf
+
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.not_RE.3.bed3 -b tmp.$sps2.$sp.bigmaf -wa -u | sort -k1,1 -k2,2n > $sps2.$sp.not_RE.3.bed3
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.not_RE.3.bed3 -b tmp.$sps1.$sp.bigmaf -wa -u | bedtools subtract -nonamecheck -f 0.5 -a stdin -b $sps2.$sp.not_RE.3.bed3 | sort -k1,1 -k2,2n > $sps1.$sp.not_RE.3.bed3
+done
+
+rm tmp.$sps.* tmp.$sps1.* tmp.$sps2.*
+
+    fi
+else
+    if [ -z "$gf" ]
+    then
+
+sps1=`echo $sps | sed 's/CC/CC1/'`;
+sps2=`echo $sps | sed 's/CC/CC2/'`;
+
+bedtools intersect -nonamecheck -a $sps.CC.not_RE.3.bed3 -b ../../../carp_ncbi.vs.carp_ncbi/all.target.syn.net.chain.20.no_ver.merged.bed3 -wo | awk -v chr="" -v OFS=$'\t' '{ if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n>=(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n>=(e-b)*0.3) print chr,b,e;} ' > $sps2.CC.not_RE.3.bed3
+bedtools intersect -nonamecheck -a $sps.CC.not_RE.3.bed3 -b ../../../carp_ncbi.vs.carp_ncbi/all.target.syn.net.chain.20.no_ver.merged.bed3 -wao | awk -v chr="" -v OFS=$'\t' '$4=="." {print $1,$2,$3} $4!="." { if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n<(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n<(e-b)*0.3) print chr,b,e;}' > $sps1.CC.not_RE.3.bed3
+
+# overlap at least 0.5 of *.CC.not_RE.3.bed3
+echo '##maf version=1' >$sps2.maf;
+~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.maf -s CC -o - | bedtools intersect -nonamecheck -f 0.5 -a $sps2.CC.not_RE.3.bed3 -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq | cut -f 4 |     awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' >> $sps2.maf
+echo '##maf version=1' >$sps1.maf;
+~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.maf -s CC -o - | bedtools intersect -nonamecheck -f 0.5 -a $sps1.CC.not_RE.3.bed3 -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq | cut -f 4 |     awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' >> $sps1.maf
+
+for sp in `echo $sps | sed 's/_/ /g'`
+do
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps2.maf -o - -s $sp | sort -k1,1 -k2,2n > tmp.$sps2.$sp.bigmaf
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps1.maf -o - -s $sp | sort -k1,1 -k2,2n > tmp.$sps1.$sp.bigmaf
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.not_RE.3.bed3 -b tmp.$sps2.$sp.bigmaf -wa -u | sort -k1,1 -k2,2n > $sps2.$sp.not_RE.3.bed3
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.not_RE.3.bed3 -b tmp.$sps1.$sp.bigmaf -wa -u | bedtools subtract -nonamecheck -f 0.5 -a stdin -b $sps2.$sp.not_RE.3.bed3 | sort -k1,1 -k2,2n > $sps1.$sp.not_RE.3.bed3
+done
+
+rm tmp.$sps.* tmp.$sps1.* tmp.$sps2.*
+
+
+    else
+
+sps11=`echo $sps | sed -e 's/CC/CC1/' -e 's/GF/GF1/'`;
+sps12=`echo $sps | sed -e 's/CC/CC1/' -e 's/GF/GF2/'`;
+sps21=`echo $sps | sed -e 's/CC/CC2/' -e 's/GF/GF1/'`;
+sps22=`echo $sps | sed -e 's/CC/CC2/' -e 's/GF/GF2/'`;
+
+bedtools intersect -nonamecheck -a $sps.GF.not_RE.3.bed3 -b ../../../carAur03.vs.carAur03/all.target.syn.net.no_het.chain.20.merged.bed3 -wo | awk -v chr="" -v OFS=$'\t' 'BEDIN{OFS="\t";} { if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n>=(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n>=(e-b)*0.3) print chr,b,e;} ' > tmp.$sps.GF.two.not_RE.bed
+bedtools intersect -nonamecheck -a $sps.GF.not_RE.3.bed3 -b ../../../carAur03.vs.carAur03/all.target.syn.net.no_het.chain.20.merged.bed3 -wao | awk -v chr="" -v OFS=$'\t' '$4=="." {print $1,$2,$3} $4!="." { if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n<(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n<(e-b)*0.3) print chr,b,e;}' > tmp.$sps.GF.one.not_RE.bed
+
+bedtools intersect -nonamecheck -a $sps.CC.not_RE.3.bed3 -b ../../../carp_ncbi.vs.carp_ncbi/all.target.syn.net.chain.20.no_ver.merged.bed3 -wo | awk -v chr="" -v OFS=$'\t' 'BEDIN{OFS="\t";} { if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n>=(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n>=(e-b)*0.3) print chr,b,e;} ' > tmp.$sps.CC.two.not_RE.bed
+bedtools intersect -nonamecheck -a $sps.CC.not_RE.3.bed3 -b ../../../carp_ncbi.vs.carp_ncbi/all.target.syn.net.chain.20.no_ver.merged.bed3 -wao | awk -v chr="" -v OFS=$'\t' '$4=="." {print $1,$2,$3} $4!="." { if (chr==$1 && b==$2 && e==$3) {n+=$7} else { if (chr!="" && n<(e-b)*0.3) print chr,b,e; chr=$1; b=$2; e=$3; n=$7;} } END{if (n<(e-b)*0.3) print chr,b,e;}' > tmp.$sps.CC.one.not_RE.bed
+
+~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.maf -s GF -o - | bedtools intersect -nonamecheck -f 0.5 -a tmp.$sps.GF.two.not_RE.bed -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq > tmp.$sps.GF.two.GF.bigmaf
+~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps.maf -s GF -o - | bedtools intersect -nonamecheck -f 0.5 -a tmp.$sps.GF.one.not_RE.bed -b stdin -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq > tmp.$sps.GF.one.GF.bigmaf
+
+cut -f 4 tmp.$sps.GF.two.GF.bigmaf | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' | ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i - -o - -s CC > tmp.$sps.GF.two.CC.bigmaf;
+cut -f 4 tmp.$sps.GF.one.GF.bigmaf | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' | ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i - -o - -s CC > tmp.$sps.GF.one.CC.bigmaf;
+
+
+bedtools intersect -nonamecheck -f 0.5 -a tmp.$sps.CC.two.not_RE.bed -b tmp.$sps.GF.two.CC.bigmaf -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq > tmp.$sps.two_two.CC.bigmaf
+bedtools intersect -nonamecheck -f 0.5 -a tmp.$sps.CC.one.not_RE.bed -b tmp.$sps.GF.one.CC.bigmaf -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq > tmp.$sps.one_one.CC.bigmaf
+bedtools intersect -nonamecheck -f 0.5 -a tmp.$sps.CC.two.not_RE.bed -b tmp.$sps.GF.one.CC.bigmaf -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq > tmp.$sps.two_one.CC.bigmaf
+bedtools intersect -nonamecheck -f 0.5 -a tmp.$sps.CC.one.not_RE.bed -b tmp.$sps.GF.two.CC.bigmaf -wo | cut -f 4-7 | sort -k1,1 -k2,2n -k4,4 | uniq > tmp.$sps.one_two.CC.bigmaf
+
+cut -f 4 tmp.$sps.two_two.CC.bigmaf | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' > $sps22.maf;
+cut -f 4 tmp.$sps.one_one.CC.bigmaf | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' > $sps11.maf;
+cut -f 4 tmp.$sps.two_one.CC.bigmaf | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' > $sps21.maf;
+cut -f 4 tmp.$sps.one_two.CC.bigmaf | awk -F';' '{ for (i=1;i<=NF;i++) {print $i} }' > $sps12.maf;
+
+
+for sp in `echo $sps | sed 's/_/ /g'`
+do
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps22.maf -o - -s $sp | sort -k1,1 -k2,2n > tmp.$sps22.$sp.bigmaf
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps11.maf -o - -s $sp | sort -k1,1 -k2,2n > tmp.$sps11.$sp.bigmaf
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps21.maf -o - -s $sp | sort -k1,1 -k2,2n > tmp.$sps21.$sp.bigmaf
+    ~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $sps12.maf -o - -s $sp | sort -k1,1 -k2,2n > tmp.$sps12.$sp.bigmaf
+
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.not_RE.3.bed3 -b tmp.$sps22.$sp.bigmaf -wa -u | sort -k1,1 -k2,2n > $sps22.$sp.not_RE.3.bed3
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.not_RE.3.bed3 -b tmp.$sps11.$sp.bigmaf -wa -u | bedtools subtract -nonamecheck -a stdin -b $sps22.$sp.not_RE.3.bed3 | sort -k1,1 -k2,2n > $sps11.$sp.not_RE.3.bed3
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.not_RE.3.bed3 -b tmp.$sps21.$sp.bigmaf -wa -u | bedtools subtract -nonamecheck -a stdin -b $sps22.$sp.not_RE.3.bed3 $sps11.$sp.not_RE.3.bed3 | sort -k1,1 -k2,2n > $sps21.$sp.not_RE.3.bed3
+    bedtools intersect -nonamecheck -f 0.5 -a $sps.$sp.not_RE.3.bed3 -b tmp.$sps12.$sp.bigmaf -wa -u | bedtools subtract -nonamecheck -a stdin -b $sps22.$sp.not_RE.3.bed3 $sps11.$sp.not_RE.3.bed3 | sort -k1,1 -k2,2n > $sps12.$sp.not_RE.3.bed3
+
+done
+
+rm tmp.$sps.*
+rm tmp.$sps11.*
+rm tmp.$sps12.*
+rm tmp.$sps21.*
+rm tmp.$sps22.*
+
+    fi
+fi
+done
+# }}}
+
+################################
+#  get counts
+################################
+>CNE1.not_RE.counts.3.txt
+>CNE1.not_RE.bp.3.txt
+for t0 in `cat sps`
+do
+cc=`echo $t0 | grep CC`;
+gf=`echo $t0 | grep GF`;
+if [ -z "$cc" ];
+then
+    if [ -z "$gf" ];
+    then
+        out1=$t0
+        out2=$t0
+        t=$t0;
+        for sp in CC GC GF ZF
+        do
+            a=`echo $t | grep $sp`;
+            f=$t.$sp.not_RE.3.bed3
+            if [ -z "$a" ]; then n=0; m=0; else n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+            out1=$out1$'\t'$n
+            out2=$out2$'\t'$m
+        done
+        echo "$out1" >> CNE1.not_RE.counts.3.txt
+        echo "$out2" >> CNE1.not_RE.bp.3.txt
+    else
+        for k in 1 2
+        do
+            t=`echo $t0 | sed 's/GF/GF'$k'/'`
+            out1=$t
+            out2=$t
+            for sp in CC GC GF ZF
+            do
+                a=`echo $t | grep $sp`;
+                f=$t.$sp.not_RE.3.bed3
+                if [ -z "$a" ]; then n=0; m=0; else n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+                out1=$out1$'\t'$n
+                out2=$out2$'\t'$m
+            done
+            echo "$out1" >> CNE1.not_RE.counts.3.txt
+            echo "$out2" >> CNE1.not_RE.bp.3.txt
+        done
+    fi
+else
+    if [ -z "$gf" ];
+    then
+
+        for k in 1 2
+        do
+            t=`echo $t0 | sed 's/CC/CC'$k'/'`
+            out1=$t
+            out2=$t
+            for sp in CC GC GF ZF
+            do
+                a=`echo $t | grep $sp`;
+                f=$t.$sp.not_RE.3.bed3
+                if [ -z "$a" ]; then n=0; m=0; else n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+                out1=$out1$'\t'$n
+                out2=$out2$'\t'$m
+            done
+            echo "$out1" >> CNE1.not_RE.counts.3.txt
+            echo "$out2" >> CNE1.not_RE.bp.3.txt
+        done
+    else
+        for k1 in 1 2
+        do
+        for k2 in 1 2
+        do
+            t=`echo $t0 | sed 's/CC/CC'$k1'/' | sed 's/GF/GF'$k2'/'`
+
+            out1=$t
+            out2=$t
+            for sp in CC GC GF ZF
+            do
+                a=`echo $t | grep $sp`;
+                f=$t.$sp.not_RE.3.bed3
+                if [ -z "$a" ]; then n=0; m=0; else n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+                out1=$out1$'\t'$n
+                out2=$out2$'\t'$m
+            done
+            echo "$out1" >> CNE1.not_RE.counts.3.txt
+            echo "$out2" >> CNE1.not_RE.bp.3.txt
+        done
+        done
+    fi
+fi
+
+done
+
+# }}}
+

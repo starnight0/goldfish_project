@@ -1,0 +1,76 @@
+file=ncrna_list
+>$file
+echo 'NONCODE'$'\t''/home/chenz11/data/goldfish/other/for_gene_annotation/NONCODEv5_zebrafish_human.short_name.fa' >> $file
+echo 'ens85_ncrna_70'$'\t''/home/chenz11/data/goldfish/other/for_gene_annotation/ens85.ncrna.70.short_name.fa' >> $file
+for f in `ls -v /home/chenz11/data/goldfish/other/for_gene_annotation/rnacentral_active.by_100Mbp/*.fa`
+do
+    i=`echo $f | sed -e 's/^.*\///' -e 's/\.fa$//'`;
+    echo rnacentral.$i$'\t'$f >> $file
+done
+
+genomefa=/home/chenz11/data/goldfish/11549472/sergey_canu70x/arrow/goldfish.arrow.renamed.masked.fasta 
+
+file=r03.ex1.sh
+>$file
+IFS=$'\n'
+n=`wc -l ncrna_list | awk '{print $1}'`
+for i `seq 1 $n`
+do
+    dbname=`head -n $i ncrna_list | tail -n 1 | cut -f 1`
+    dbpath=`head -n $i ncrna_list | tail -n 1 | cut -f 2`
+    exdir=$dbname.ex1
+    for f in `ls $exdir/[0-9][0-9][0-9]`
+    do
+        echo 'perl ~/my_program3/src/assembly/czl_exonerate_after_blasn.pl -i '$exdir' -o '$exdir'.out -q '$dbpath' -t '$genomefa' -p $SLURM_CPUS_PER_TASK -fl 2000' >> $file
+    done
+done
+
+file=r03.ex1.cat.sh
+>$file
+IFS=$'\n'
+n=`wc -l ncrna_list | awk '{print $1}'`
+for i in `seq 1 $n`
+do
+    dbname=`head -n $i ncrna_list | tail -n 1 | cut -f 1`
+    dbpath=`head -n $i ncrna_list | tail -n 1 | cut -f 2`
+    exdir=$dbname.ex1
+    echo 'cd "'$exdir'"; if ! [ -e all.out.gz ]; then cat [0-9][0-9][0-9].out | gzip -c > all.out.gz; fi;     ~/my_program3/src/annot_genome/czl_exonerate_to_gtf_gff3.pl -i all.out -o all.out -qs $dbpath.fai -qspan 0.75;    gffread all.out.gff3 -M -K -o all.out.gffread.gff;    cuffcompare -o all.out.cuffcompare all.out.gff3;     cd ..; ' >> $file
+done
+
+file=r03.ex1.cat.filter.sh
+>$file
+IFS=$'\n'
+n=`wc -l ncrna_list | awk '{print $1}'`
+for i in `seq 1 $n`
+do
+    dbname=`head -n $i ncrna_list | tail -n 1 | cut -f 1`
+    dbpath=`head -n $i ncrna_list | tail -n 1 | cut -f 2`
+    exdir=$dbname.ex1
+    echo 'cd "'$exdir'";    ~/my_program3/src/annot_genome/czl_exonerate_after_blasn_gff3_remove_dup.pl -i all.out.gff3 -o all.out.rmdup.gff;     ~/my_program3/src/annot_genome/czl_exonerate_after_blasn_filter.pl -i all.out.gz -o all.out.f -qs '$dbpath'.fai -score-frac 0.9 -qcov 0.6 -qiden1 0.5 -qiden2 0.7;    ~/my_program3/src/annot_genome/czl_exonerate_to_gtf_gff3.pl -i all.out.f -o all.out.f -qs '$dbpath'.fai;    ~/my_program3/src/annot_genome/czl_exonerate_after_blasn_gff3_remove_dup.pl -i all.out.f.gff3 -o all.out.f.rmdup.gff; cd ..; ' >> $file
+done
+
+file=r03.ex1.cat.gffread.sh
+>$file
+files=""
+files1=""
+files2=""
+IFS=$'\n'
+n=`wc -l ncrna_list | awk '{print $1}'`
+for i in `seq 1 $n`
+do
+    dbname=`head -n $i ncrna_list | tail -n 1 | cut -f 1`
+    dbpath=`head -n $i ncrna_list | tail -n 1 | cut -f 2`
+    exdir=$dbname.ex1
+    files="$files $exdir/all.out.gffread.gff";
+    files1="$files1 $exdir/all.out.gff3";
+    files2="$files2 $exdir/all.out.cuffcompare.combined.gtf";
+done
+echo 'cat '$files' | gffread - -M -K -o all.ex1.gffread2.gff' >>  $file
+echo 'cat '$files1' | gffread - -M -K -o all.ex1.gffread.gff' >>  $file
+
+file=r04.ex1.cat.cuffcompare.sh
+>$file
+echo 'cuffcompare -o all.ex1.cuffcompare2 *ex1/all.out.cuffcompare.combined.gtf' >>  $file
+echo 'cuffcompare -o all.ex1.cuffcompare *ex1/all.out.gff3' >>  $file
+echo 'cuffcompare -o all.ex1.f.cuffcompare *ex1/all.out.f.rmdup.gff' >>  $file
+

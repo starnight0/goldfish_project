@@ -1,0 +1,83 @@
+mkdir by_ctg;
+i=0;j=1;
+dir=`printf "%03i" $j`
+>by_ctg/ctg_dir
+for ctg in `cat ../goldfish.arrow.renamed.fasta.fai | cut -f1 | sort`
+do
+    if ! [ -d by_ctg/$dir ]; then mkdir by_ctg/$dir; fi;
+    if ! [ -d by_ctg/$dir/$ctg ]; then mkdir by_ctg/$dir/$ctg; fi;
+    echo $ctg$'\t'$dir/$ctg >> by_ctg/ctg_dir;
+    i=`expr $i + 1`
+    if [ $i -eq 100 ]; then j=`expr $j + 1`; dir=`printf "%03i" $j`; i=0; fi
+done
+
+cat ../Trinity_GG_run01/all.f.ex2.ncrna.cuffcompare.combined.gtf | perl -e '
+my %dir;
+my %gff;
+open IN, "<by_ctg/ctg_dir";
+while(<IN>) { if (m/^\s*$/) {next;} chomp; my @t=split "\t"; $dir{$t[0]}=$t[1]; }
+close IN;
+while (<>) {
+    if (m/^#/ || m/^\s*$/) {next;} chomp; my @t=split "\t";  my $ctg=$t[0];
+    push @{$gff{$ctg}}, $_;
+}
+foreach my $ctg (sort keys(%gff)) {
+    open OUT, ">by_ctg/$dir{$ctg}/Trinity_GG_run01.gtf";
+    foreach my $a (@{$gff{$ctg}}) { print OUT $a,"\n"; }
+    close OUT;
+}'
+
+cat ../ncrna_run1/all.ex1.f.cuffcompare.combined.gtf | perl -e '
+my %dir;
+my %gff;
+open IN, "<by_ctg/ctg_dir";
+while(<IN>) { if (m/^\s*$/) {next;} chomp; my @t=split "\t"; $dir{$t[0]}=$t[1]; }
+close IN;
+while (<>) {
+    if (m/^#/ || m/^\s*$/) {next;} chomp; my @t=split "\t";  my $ctg=$t[0];
+    push @{$gff{$ctg}}, $_;
+}
+foreach my $ctg (sort keys(%gff)) {
+    open OUT, ">by_ctg/$dir{$ctg}/ncrna_run1.gtf";
+    foreach my $a (@{$gff{$ctg}}) { print OUT $a,"\n"; }
+    close OUT;
+}'
+
+cat ../miRBase_run1/all.ex.f.cuffcompare.combined.gtf.not_exon.gtf | perl -e '
+my %dir;
+my %gff;
+open IN, "<by_ctg/ctg_dir";
+while(<IN>) { if (m/^\s*$/) {next;} chomp; my @t=split "\t"; $dir{$t[0]}=$t[1]; }
+close IN;
+while (<>) {
+    if (m/^#/ || m/^\s*$/) {next;} chomp; my @t=split "\t";  my $ctg=$t[0];
+    push @{$gff{$ctg}}, $_;
+}
+foreach my $ctg (sort keys(%gff)) {
+    open OUT, ">by_ctg/$dir{$ctg}/miR.gtf";
+    foreach my $a (@{$gff{$ctg}}) { print OUT $a,"\n"; }
+    close OUT;
+}'
+
+cat ../miRBase_run1/carAur01.rfam.cmscan.f.gff | perl -e '
+my %dir;
+my %gff;
+open IN, "<by_ctg/ctg_dir";
+while(<IN>) { if (m/^\s*$/) {next;} chomp; my @t=split "\t"; $dir{$t[0]}=$t[1]; }
+close IN;
+while (<>) {
+    if (m/^#/ || m/^\s*$/) {next;} chomp; my @t=split "\t";  my $ctg=$t[0];
+    push @{$gff{$ctg}}, $_;
+}
+foreach my $ctg (sort keys(%gff)) {
+    open OUT, ">by_ctg/$dir{$ctg}/rfam.gtf";
+    foreach my $a (@{$gff{$ctg}}) { print OUT $a,"\n"; }
+    close OUT;
+}'
+
+file=r01.combine.sh
+>$file
+echo '#!/bin/sh' >> $file
+echo 'cuffcompare -o all3.cuffcompare ../ncrna_run1/all.ex1.f.cuffcompare.combined.gtf ../Trinity_GG_run01/all.f.ex2.ncrna.cuffcompare.combined.gtf  ../miRBase_run1/all.ex.f.cuffcompare.combined.gtf.not_exon.gtf' >> $file
+echo 'cuffcompare -o all4.cuffcompare ../ncrna_run1/all.ex1.f.cuffcompare.combined.gtf ../Trinity_GG_run01/all.f.ex2.ncrna.cuffcompare.combined.gtf  ../miRBase_run1/all.ex.f.cuffcompare.combined.gtf.not_exon.gtf ../miRBase_run1/carAur01.rfam.cmscan.f.gff' >> $file
+cmd=r01.combine; if ! [ -d $cmd.log ]; then mkdir $cmd.log; else rm $cmd.log/*; fi; swarm -m blast,TransDecoder,bedtools -g 8 --time=24:00:00 -J $cmd --logdir=$cmd.log -m cufflinks -f $cmd.sh

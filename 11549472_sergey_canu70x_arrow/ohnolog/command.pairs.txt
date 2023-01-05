@@ -1,0 +1,50 @@
+sps10="CTEIDE CYPCAR ENSAMX ENSDAR ENSGAC ENSGMO ENSLAC ENSLOC ENSONI ENSORL ENSPFO ENSTNI ENSTRU ENSXMA carAur"
+mybin=~/my_program3/src
+for dir1 in t.blast p.blast
+do
+    if ! [ -f $dir1/out.m6.gz ]; then  gzip $dir1/out.m6; fi
+    if ! [ -d $dir1/pairs ]
+    then
+        mkdir $dir1/pairs;
+        zcat $dir1/out.m6.gz | perl -e 'while(<>) { @t=split "\t"; 
+            $q=$t[0]; $t=$t[1]; 
+            if ($q=~m/^ENS/) {$qsp=substr $q,0,6;} elsif ($q=~m/^CI/) {$qsp="CTEIDE";} elsif ($q=~m/^CAFS/) {$qsp="CYPCAR";} else {$qsp="carAur";}
+            if ($t=~m/^ENS/) {$tsp=substr $t,0,6;} elsif ($t=~m/^CI/) {$tsp="CTEIDE";} elsif ($t=~m/^CAFS/) {$tsp="CYPCAR";} else {$tsp="carAur";}
+            $t[0] = "$qsp|$t[0]";
+            $t[1] = "$tsp|$t[1]";
+            my $sp1 = $qsp;
+            my $sp2 = $tsp;
+            if ( ($sp1 cmp $sp2) > 0 ) { $sp1=$tsp; $sp2=$qsp; }
+            if (!exists $fh{$sp1}{$sp2}) { open $fh{$sp1}{$sp2}, "| gzip -c > '"$dir1"'/pairs/$sp1.$sp2.m6.gz"; $fh{$sp2}{$sp1}=$fh{$sp1}{$sp2}; }
+            $t[12]=".";
+            print {$fh{$sp1}{$sp2}} join("\t",@t);
+        }
+        foreach my $sp1 (keys(%fh)) {
+            foreach my $sp2 (keys(%{$fh{$sp1}})) {
+                close $fh{$sp1}{$sp2};
+            }
+        }'
+    fi
+
+    dir2=$dir1/sp5.pairs.2
+    if ! [ -d $dir2 ]
+    then
+        mkdir $dir2
+        for sp1 in ENSDAR carAur CYPCAR CTEIDE ENSAMX
+        do
+        for sp2 in ENSDAR carAur CYPCAR CTEIDE ENSAMX
+        do
+            if [[ "$sp1" < "$sp2" || "$sp1" == "$sp2" ]]
+            then
+                echo $sp1.$sp2
+                perl $mybin/ohnolog/czl_blast_pair_filter.pl -i $dir1/pairs/$sp1.$sp2.m6.gz -op $dir2/$sp1.$sp2.f --piden-min 30 --ppositive-min 50 --e-max 0.001 --cov-min-min 50 --cov-max-min 75 --bit-frac-min 0.1
+                zcat $dir2/$sp1.$sp2.f.join.m6.gz | sort -k12,12gr | perl $mybin/ohnolog/czl_blast_pair_filter.bit_frac.pl -i - -o - -f 0.2 | sort -t $'\t' -k1,1 -k12,12gr | gzip -c > $dir2/$sp1.$sp2.f2.join.m6.gz
+#            zcat $dir2/$sp1.$sp2.f2.join.m6.gz | sort -k12,12gr | perl $mybin/ohnolog/czl_blast_pair_rbh.pl -i - -op $dir2/$sp1.$sp2 --copy $sp1,1:$sp2,2
+#            cat $sp1.$sp2.rbh.txt | tail -n +2 | cut -f 9 | perl -ne 'chmop; print int($_*10+0.5), "\n";' | sort -k1,1gr | uniq -c | awk '{print $2"\t"$1}'
+#            cat $sp1.$sp2.rbh.txt | tail -n +2 | sort -k1,1 | awk -F$'\t' 'BEGIN {id="";n=0;m=0;x=100;} { if (id!=$1) { if (id!="" && n>1) {print id"\t"n"\t"(x-m);} id=$1; n=0; m=100; x=0;} n=n+1; if ($9<m) {m=$9;} if ($9>x) {x=$9;} } END{ if (n>1) {print id"\t"n"\t"(x-m)}}' > $sp1.$sp2.rbh.diff.txt
+#            cat $sp1.$sp2.rbh.txt | tail -n +2 | sort -k1,1 | awk -F$'\t' 'BEGIN {id="";n=0;ids="";} { if (id!=$1) { if (id!="" && n>1) {print ids;} id=$1; n=1; ids=$2;} else { n=n+1; ids=ids"\t"$2} } END{if (n>1) {print ids}}' > $sp1.$sp2.rbh.$sp2.paralog.txt
+            fi
+        done
+        done
+    fi
+done

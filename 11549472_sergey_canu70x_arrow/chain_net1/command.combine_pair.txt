@@ -1,0 +1,14 @@
+sp1=danRer10
+sp2=carp_ncbi
+cd $sp1.vs.$sp2
+#if ! [ -f all.prenet.swap.chain ]; then chainSwap all.prenet.chain all.prenet.swap.chain; fi
+if ! [ -f all.target.syn.net.chain ]; then netChainSubset all.target.syn.net all.prenet.chain all.target.syn.net.chain; fi
+if ! [ -f all.target.syn.net.swap.chain ]; then chainSwap all.target.syn.net.chain all.target.syn.net.swap.chain; fi
+
+cat $sp1.vs.$sp2/all.target.syn.net.chain $sp2.vs.$sp1/all.target.syn.net.swap.chain > $sp1.vs.$sp2/tmp.all.target.syn.net.chain
+~/my_program3/src/utility/czl_chain_remove_TQovl.pl -i $sp1.vs.$sp2/tmp.all.target.syn.net.chain -o $sp1.vs.$sp2/all.target.syn.net.comb.chain
+rm $sp1.vs.$sp2/tmp.all.target.syn.net.chain
+chainFilter -minScore=50000 $sp1.vs.$sp2/all.target.syn.net.comb.chain > $sp1.vs.$sp2/all.target.syn.net.comb.minScore50000.chain
+chainSwap $sp1.vs.$sp2/all.target.syn.net.comb.minScore50000.chain $sp1.vs.$sp2/all.target.syn.net.comb.minScore50000.swap.chain 
+
+

@@ -1,0 +1,38 @@
+library('extrafont')
+font_import()
+loadfonts()
+
+tmp=list();
+tmp$timepoint=c(20,14.4,11,0)
+names(tmp$timepoint) = c('GC', 'WGD', 'CC_GF', 'Cur');
+tmp$genes=list();
+#tmp$genes$GC=c(19040, 18519)
+#tmp$genes$CC=c(19040, 18954, 18954*2, 18954*2-1189, 15202*2+2406+1056);
+#tmp$genes$GF=c(19040, 18954, 18954*2, 18954*2-1189, 16455*2+1236+1105);
+tmp$genes$GC=100-c(19040, 18519)/19040*100
+tmp$genes$CC=100-c(19040, 18954, (18954*2-1189)/2, (15202*2+2406+1056)/2)/19040*100;
+tmp$genes$GF=100-c(19040, 18954, (18954*2-1189)/2, (16455*2+1236+1105)/2)/19040*100;
+
+jpeg("~/Documents/goldfish_project/goldfish/science_advance_review1/WGD.decay_curve_lost.jpg", width=1800, height=1000, res=300);
+par(family="Arial");
+par(mar=c(5,4,2,4)+0.1);
+par(mgp=c(3,1,0))
+y0=0;
+y1=15;
+cex=1.4
+plot(-c(20,0), tmp$genes$GC, type='l', ylim=c(y0-1,y1), xlim=c(-20,0), axes=F, xpd=T, xlab="Time (Mya)", ylab="Retained genes (%)", lwd=2, cex=cex)
+axis(1, at=-tmp$timepoint, labels=tmp$timepoint, pos=y0-1, cex.axis=1.3);
+axis(2, at=(0:20)*5, labels=(0:20)*5, pos=-21, cex.axis=1.3);
+lines(-c(20,14.4), tmp$genes$CC[1:2], col='gray', lwd=2);
+lines(-c(14.4,11), tmp$genes$CC[2:3], col='darkgray', lwd=6);
+lines(-c(11,0), tmp$genes$CC[3:4], col='orange', lwd=2);
+lines(-c(11,0), tmp$genes$GF[3:4], col='darkgreen', lwd=2);
+y.ch = par("cxy")[2];
+x.ch = par("cxy")[1];
+points(-20, 0); text(-20,0+y.ch, labels=100, xpd=T, cex=cex);
+points(-14.4, tmp$genes$CC[2], col='gray'); text(-14.4,tmp$genes$CC[2]+y.ch*cex, labels=sprintf("%.1f", tmp$genes$CC[2]), xpd=T, col='red', cex=cex);
+points(-11, tmp$genes$CC[3]); text(-11,tmp$genes$CC[3]+y.ch*cex, labels=sprintf("%.1f", tmp$genes$CC[3]), xpd=T, col='blue', cex=cex);
+points(0, tmp$genes$CC[4], col='orange');text(0+x.ch*3,tmp$genes$CC[4], labels=sprintf("%.1f",tmp$genes$CC[4]), col='orange', xpd=T, cex=cex);
+points(0, tmp$genes$GF[4], col='darkgreen');text(0+x.ch*3,tmp$genes$GF[4], labels=sprintf("%.1f",tmp$genes$GF[4]), col='darkgreen', xpd=T, cex=cex);
+points(0, tmp$genes$GC[2]);text(0+x.ch*3,tmp$genes$GC[2], labels=sprintf("%.1f",tmp$genes$GC[2]), xpd=T, cex=cex);
+dev.off();

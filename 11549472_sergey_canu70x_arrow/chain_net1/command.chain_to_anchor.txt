@@ -1,0 +1,123 @@
+file=r.chain_to_element.sh
+>$file
+
+i=0
+for sp1 in `cat species | cut -f 1`
+do
+i=`expr $i + 1`;
+j=0;
+repeat1=`cat species.repeat_bed | head -n $i | tail -n 1 | cut -f 3`
+gene1=`cat species.repeat_bed | head -n $i | tail -n 1 | cut -f 4`
+exon1=`cat species.repeat_bed | head -n $i | tail -n 1 | cut -f 5`
+for sp2 in `cat species | cut -f 1`
+do
+	j=`expr $j + 1`
+	repeat2=`cat species.repeat_bed | head -n $j | tail -n 1 | cut -f 3`
+	gene2=`cat species.repeat_bed | head -n $j | tail -n 1 | cut -f 4`
+	exon2=`cat species.repeat_bed | head -n $j | tail -n 1 | cut -f 5`
+	if [ "x$sp1" != "x$sp2" ]; then 
+		dir=$sp1.vs.$sp2
+		if [ -d $dir ]; then
+			echo 'cd '$dir >> $file
+			echo '~/my_program3/src/utility/czl_chain_to_bed.pl -tg 30 -qg 30 -i all.chain -o - | bedtools sort -i stdin > all.chain.T.bed' >> $file
+			echo 'bedtools subtract -a all.chain.T.bed -b '$repeat1' | bedtools subtract -a stdin -b '$exon1' | awk '"'"'$3-$2>=50'"'"' > all.chain.T.not_repeat_exon.bed' >> $file
+			echo 'cat all.chain.T.not_repeat_exon.bed | perl -ne '"'"'chomp; @t=split "\t"; ($qseq,$qsize,$qbegin,$qend,$tsize)=split /[:\-]/,$t[3]; print "$qseq\t$qbegin\t$qend\t$t[0]:$tsize:$t[1]-$t[2]:$qsize\t$t[4]\t$t[5]\n";'"'"' | sort -k1,1 -k2,2n > all.chain.T.not_repeat_exon.Q.bed' >> $file
+			echo 'bedtools subtract -a all.chain.T.not_repeat_exon.Q.bed -b '$repeat2' | bedtools subtract -a stdin -b '$exon2' | awk '"'"'$3-$2>=50'"'"' | bedtools sort -i stdin > all.chain.T.not_repeat_exon.Q.not_repeat_exon.bed' >> $file
+			echo 'cat all.chain.T.not_repeat_exon.Q.not_repeat_exon.bed | perl -ne '"'"'chomp; @t=split "\t"; ($qseq,$qsize,$qbegin,$qend,$tsize)=split /[:\-]/,$t[3]; print "$qseq\t$qbegin\t$qend\t$t[0]:$tsize:$t[1]-$t[2]:$qsize\t$t[4]\t$t[5]\n";'"'"' | bedtools sort -i stdin > all.chain.T.not_repeat_exon.Q.not_repeat_exon.T.bed' >> $file
+			echo 'bedtools merge -i all.chain.T.not_repeat_exon.Q.not_repeat_exon.bed | bedtools sort -i stdin > all.chain.T.not_repeat_exon.Q.not_repeat_exon.Q.merged.bed' >> $file
+			echo 'bedtools merge -i all.chain.T.not_repeat_exon.Q.not_repeat_exon.T.bed | bedtools sort -i stdin> all.chain.T.not_repeat_exon.Q.not_repeat_exon.T.merged.bed' >> $file
+			echo 'cd ..' >> $file
+		fi
+	fi
+done
+done
+
+file=r.chain_to_element.2.sh
+>$file
+i=0
+for sp1 in `cat species | cut -f 1`
+do
+i=`expr $i + 1`;
+files=""
+for sp2 in `cat species | cut -f 1`
+do
+	j=`expr $j + 1`
+	if [ "x$sp1" != "x$sp2" ]; then 
+		dir=$sp1.vs.$sp2
+		if [ -d $dir ] && [ -f "$dir/all.chain.T.not_repeat_exon.Q.not_repeat_exon.T.merged.bed" ]; then
+			files="$files $dir/all.chain.T.not_repeat_exon.Q.not_repeat_exon.T.merged.bed"
+		fi
+		dir=$sp2.vs.$sp1
+		if [ -d $dir ] && [ -f "$dir/all.chain.T.not_repeat_exon.Q.not_repeat_exon.T.merged.bed" ]; then
+			files="$files $dir/all.chain.T.not_repeat_exon.Q.not_repeat_exon.Q.merged.bed"
+		fi
+	fi
+done
+fa=`cat species | head -n $i | tail -n 1 | cut -f 3`
+sp1a=`cat species | head -n $i | tail -n 1 | cut -f 2`
+if ! [ -z "$files" ]; then
+	echo 'cat '$files' | bedtools sort -i stdin | awk '"'"'{print $0"\t1";}'"'"' | bedtools merge -c 4 -o count -i stdin | awk '"'"'$3-$2>=50'"'"' | bedtools sort -i stdin > '$sp1'.element.bed' >> $file
+	echo 'cat '$sp1'.element.bed | awk '"'"'$3-$2<=10000'"'"' > '$sp1'.element.10K.short.bed' >> $file
+	echo 'cat '$sp1'.element.bed | awk '"'"'$3-$2>10000'"'"' > '$sp1'.element.10K.long.bed' >> $file
+	echo 'bedtools getfasta -fi '$fa' -bed '$sp1'.element.bed -fo '$sp1'.element.fasta' >> $file
+	echo 'bedtools getfasta -fi '$fa' -bed '$sp1'.element.10K.short.bed -fo '$sp1'.element.10K.short.fasta' >> $file
+	echo 'sed -i "/^>/ s/^>/>'$sp1a'|/" '$sp1'.element.fasta' >> $file
+	echo 'makeblastdb -dbtype nucl -in '$sp1'.element.fasta' >> $file
+	echo 'TransDecoder.LongOrfs -t '$sp1'.element.fasta -m 30; cd '$sp1'element.fasta.transdecoder_dir; cat longest_orfs.pep | sed -e "/^>/ s/\s.*$//" -e "s/\*$//" > longest_orfs.no_stop_codon.pep; cd ../' >> $file
+fi
+done
+# cmd=r04.chain_to_element.2; if ! [ -d $cmd.log ]; then mkdir $cmd.log; else rm $cmd.log/*; fi; swarm -m blast,TransDecoder,bedtools -g 8 -b 8 --partition quick --time=4:00:00 -J $cmd --logdir=$cmd.log -f $cmd.sh
+
+file=r.chain_to_element.cat.sh
+>$file
+i=0;
+echo '>all3.element.fasta' >> $file
+for sp1 in `cat species | cut -f 1`
+do
+i=`expr $i + 1`;
+sp1a=`cat species | head -n $i | tail -n 1 | cut -f 2`
+echo 'cat '$sp1'.element.fasta >> all3.element.fasta' >> $file
+done
+echo 'makeblastdb -dbtype nucl -in all3.element.fasta' >> $file
+
+file=r04.chain_to_element.blastn.sh
+file1=r04.chain_to_element.blastx.sh
+>$file
+>$file1
+for sp1 in `cat species | head -n 4 | cut -f 1`
+do
+i=`expr $i + 1`;
+j=0
+for sp2 in `cat species | head -n 4 | cut -f 1`
+do
+j=`expr $j + 1`;
+echo 'blastn -db '$sp1'.element.fasta -query '$sp2'.element.fasta -outfmt "6 std btop qlen slen score" -evalue 1e-5 -perc_identity 70 -max_target_seqs 100 -num_threads $SLURM_CPUS_PER_TASK | gzip -c  > '$sp1'.element.vs.'$sp2'.element.m6.gz'  >> $file
+done
+mkdir uniref90.vs.$sp1.element.blastx
+for f in `ls $sp1.element.fasta.by_20Mbp/*.fa`
+do
+	j=`echo $f | sed -e 's/^.*\///' -e 's/\.fa$//'`;
+	echo 'blastx -task blastx-fast -db ~/data/uniprot/uniref90.20161011.fasta -query '$f' -outfmt "6 std score qlen slen score" -evalue 1e-5 -max_target_seqs 10 -num_threads $SLURM_CPUS_PER_TASK | gzip -c  > uniref90.vs.'$sp1'.element.blastx/'$j'.m6.gz'  >> $file1
+done
+done
+
+file=r04.chain_to_element.blastn.join.sh
+>$file
+for sp1 in `cat species | head -n 4 | cut -f 1`
+do
+i=`expr $i + 1`;
+j=0
+for sp2 in `cat species | head -n 4 | cut -f 1`
+do
+j=`expr $j + 1`;
+echo 'perl ~/my_program3/src/ohnolog/czl_blast_pair_filter.pl -i '$sp1'.element.vs.'$sp2'.element.m6.gz -op '$sp1'element.vs.'$sp2'.element.f --piden-min 30 --e-max 0.001 --cov-min-min 50 --cov-max-min 75 --bit-frac-min 0.2' >> $file
+done
+done
+
+file=r05.interpro.sh
+>$file
+for i in `seq 1 4`
+do
+sp1=`cat species | head -n $i | tail -n 1 | cut -f 1`
+echo 'interproscan -t p -f TSV,GFF3,HTML -iprlookup --goterms --pathways --minsize 30 '$sp1'.element.fasta.transdecoder_dir/longest_orfs.no_stop_codon.pep '$sp1'.element.interProScan5_run1 400' >> $file
+done

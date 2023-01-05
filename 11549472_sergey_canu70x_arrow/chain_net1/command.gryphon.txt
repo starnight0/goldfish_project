@@ -1,0 +1,144 @@
+carAur_list=../goldfish.arrow.renamed.by_100Mbp.list
+carp_ng_list=$MYDATA/common_carp/ng/by_100Mbp.list 
+carp_pb_list=$MYDATA/common_carp/pacbio/by_100Mbp.list 
+grass_carp_list=$MYDATA/grass_carp/ng/by_100Mbp.list
+grass_carp_female_lg_list=$MYDATA/grass_carp/ng/C_idella_female_linkage_map_anchored_scaffolds.v1.fasta.by_100Mbp.list
+danRer10_list=$MYDATA/danRer10/by_chr.list
+hg38_list=$MYDATA/human/hg38/by_chr.list
+gar_list=$MYDATA/spotted_gar/Lepisosteus_oculatus/by_100Mbp.list
+oryLat2_list=$MYDATA/medaka/oryLat2/by_100Mbp.list
+cave_fish_list=$MYDATA/cave_fish/Astyanax_mexicanus/by_100Mbp.list
+salmon_list=$MYDATA/atlantic_salmon/GCF_000233375.1_ICSASG_v2/by_100Mbp.list
+
+sps="carAur carp_ng carp_pb grass_carp grass_carp_female_lg danRer10 hg38 gar oryLat2 cave_fish salmon"
+spsl="$carAur_list $carp_ng_list $carp_pb_list $grass_carp_list $grass_carp_female_lg_list $danRer10_list $hg38_list $gar_list $oryLat2_list $cave_fish_list $salmon_list"
+
+for i in `seq 1 11`
+do
+sp1=`echo $sps | cut -d' ' -f $i`;
+spl1=`echo $spsl | cut -d' ' -f $i`;
+
+for j in `seq 1 11`
+do
+sp2=`echo $sps | cut -d' ' -f $j`;
+spl2=`echo $spsl | cut -d' ' -f $j`;
+
+echo $sp1.vs.$sp2
+echo $spl1
+echo $spl2
+
+if [ "$sp1" == "$sp2" ]; then opt=" --self "; else opt=""; fi
+~/my_program3/src/assembly/czl_lastz_chain_net_files_array.pl --ref-list $spl1 --query-list $spl2 --out-dir $sp1.vs.$sp2 $opt \
+        --lastz-opt '--gapped --ambiguous=n --step=10 --strand=both --masking=10 --maxwordcount=500 --identity=70..100 --format=axt' \
+        --chain-opt '-faQ -faT -minScore=3000 -linearGap=medium' --recovery
+done
+done
+
+# additional runs
+for i in `seq 2 11`
+do
+sp1=`head -n $i species | tail -n 1 | cut -f 1`;
+spl1=`head -n $i species | tail -n 1 | cut -f 4 | sed 's#~#'$HOME'#'`;
+sp1_2bit=`head -n $i species | tail -n 1 | cut -f 5 | sed 's#~#'$HOME'#'`;
+
+for j in `seq 2 11`
+do
+sp2=`head -n $j species | tail -n 1 | cut -f 1`;
+spl2=`head -n $j species | tail -n 1 | cut -f 4 | sed 's#~#'$HOME'#'`;
+sp2_2bit=`head -n $j species | tail -n 1 | cut -f 5 | sed 's#~#'$HOME'#'`;
+
+if [ $i -eq 11 ] || [ $j -eq 11 ]
+then
+    echo $sp1.vs.$sp2
+    echo $spl1
+    echo $spl2
+
+    if ! [ -d $sp1.vs.$sp2 ]; then mkdir $sp1.vs.$sp2 ; fi
+    if [ "$sp1" == "$sp2" ]; then opt=" --self "; else opt=""; fi
+    ~/my_program3/src/assembly/czl_lastz_chain_net_files_array.pl --ref-list $spl1 --query-list $spl2 --ref-2bit $sp1_2bit --query-2bit $sp2_2bit --out-dir $sp1.vs.$sp2 $opt  --lastz-opt '--gapped --ambiguous=n --step=3 --strand=both --masking=100 --maxwordcount=500 --identity=70..100 --format=axt  --allocate:traceback=1024M' --chain-opt '-faQ -faT -minScore=3000 -linearGap=medium' --recovery
+fi
+
+done
+done
+
+
+################################
+# filter by repeat regions
+################################
+file=r04.antirepeat.sh
+>$file
+for i in `seq 1 11`
+do
+sp1=`head -n $i species | tail -n 1 | cut -f 1`;
+spl1=`head -n $i species | tail -n 1 | cut -f 4 | sed 's#~#'$HOME'#'`;
+fa1=`head -n $i species | tail -n 1 | cut -f 3 | sed -e 's#~#'$HOME'#'`;
+twobit1=`echo $fa1 | sed -e 's/\.fa/.2bit/' -e 's/\.fasta/.2bit/'`;
+
+for j in `seq 1 11`
+do
+sp2=`head -n $j species | tail -n 1 | cut -f 1`;
+spl2=`head -n $j species | tail -n 1 | cut -f 4 | sed 's#~#'$HOME'#'`;
+fa2=`head -n $j species | tail -n 1 | cut -f 3 | sed -e 's#~#'$HOME'#'`;
+twobit2=`echo $fa2 | sed -e 's/\.fa/.2bit/' -e 's/\.fasta/.2bit/'`;
+
+if [ $i -eq 1 ] && [ $j -eq 11 ]; then continue; fi
+if [ $i -eq 11 ] && [ $j -eq 1 ]; then continue; fi
+
+    echo $sp1.vs.$sp2
+    echo 'cd '$sp1'.vs.'$sp2'; chainAntiRepeat '$fa1' '$fa2' all.chain all.AntiRepeat.chain' >> $file
+
+done
+done
+
+
+##############################
+# remove heterozygous contigs for carAur03
+##############################
+# CWD: carAur03.vs.carAur03
+cat all.target.syn.net.chain | perl -e '
+my %mask;
+open IN, "<../../carAur01/carAur01.masked_ctg_id";
+while(<IN>) { if (m/^#/ || m/^\s*$/) {next;} chomp; $mask{$_}++; }
+close IN;
+my @a;
+my $filt=0;
+while(<>) {
+    if (m/^#/) {next;} chomp;
+    if (m/^chain/) {
+        my @t = split / /, $_;
+        if (exists $mask{$t[2]} || exists $mask{$t[7]}) { $filt=1; @a=();}
+        else { $filt=0; @a=($_); }
+    } elsif (m/\S/) {
+        if (!$filt) { push @a, $_; }
+    } else {
+        if (!$filt) {
+            foreach my $a (@a) { print $a, "\n"; }
+            print "\n";
+        }
+    }
+}' > all.target.syn.net.no_het.chain
+
+#########
+
+cat carAur03.vs.carp_ncbi/all.target.syn.net.comb.chain | perl -e '
+my %mask;
+open IN, "<../carAur01/carAur01.masked_ctg_id";
+while(<IN>) { if (m/^#/ || m/^\s*$/) {next;} chomp; $mask{$_}++; }
+close IN;
+my @a;
+my $filt=0;
+while(<>) {
+    if (m/^#/) {next;} chomp;
+    if (m/^chain/) {
+        my @t = split / /, $_;
+        if (exists $mask{$t[2]}) { $filt=1; @a=();}
+        else { $filt=0; @a=($_); }
+    } elsif (m/\S/) {
+        if (!$filt) { push @a, $_; }
+    } else {
+        if (!$filt) {
+            foreach my $a (@a) { print $a, "\n"; }
+            print "\n";
+        }
+    }
+}' > carAur03.vs.carp_ncbi/all.target.syn.net.comb.no_het.chain

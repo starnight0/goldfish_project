@@ -1,0 +1,220 @@
+cat carAur01.all.cdna2genome.gff | grep 'ENS' | grep -v 'ENSDAR' > carAur01.all.cdna2genome.ens_not_ZF.gff
+cat carAur01.all.cdna2genome.gff | grep 'CAFS_'  > carAur01.all.cdna2genome.CC.gff
+cat carAur01.all.cdna2genome.gff | grep -v 'ENS' | grep -v 'CAFS_' > carAur01.all.cdna2genome.refseq.gff
+
+cmd=r01.merge_gff_fa
+file=$cmd.sh
+>$file
+echo '#!/bin/sh
+~/program/maker/bin/gff3_merge -d ../maker4/goldfish.arrow.renamed.maker.output/goldfish.arrow.renamed_master_datastore_index.1.log -l -n -g -o carAur01.gff
+~/program/maker/bin/gff3_merge -d ../maker4/goldfish.arrow.renamed.maker.output/goldfish.arrow.renamed_master_datastore_index.1.log -l -n -o carAur01.all.gff
+~/program/maker/bin/fasta_merge -d ../maker4/goldfish.arrow.renamed.maker.output/goldfish.arrow.renamed_master_datastore_index.1.log -o carAur01
+' >> $file
+#cmd=r01.merge_gff_fa; sbatch --mem=16G --time=48:00:00  -J $cmd -o $cmd.o%A $cmd.sh
+#cmd=r01.merge_gff_fa; if ! [ -d $cmd.log ]; then mkdir $cmd.log; else rm $cmd.log/*; fi; swarm -g 16 --time=24:00:00  -J $cmd --logdir=$cmd.log -f $cmd.sh
+
+cmd=r02.by_source
+file=$cmd.sh
+>$file
+echo '#!/bin/sh'
+for s in cdna2genome protein2genome est2genome evm repeatmasker augustus_masked
+do
+echo 'cat carAur01.all.gff | awk -F$'"'"'\t'"'" "'"'$1~/^#/ || $2=="'$s'"'"'"' > carAur01.all.'$s'.gff' >> $file
+done
+#cmd=r02.by_source; if ! [ -d $cmd.log ]; then mkdir $cmd.log; else rm $cmd.log/*; fi; swarm -g 4 --time=24:00:00  -J $cmd --logdir=$cmd.log -f $cmd.sh
+
+cmd=r03.name
+file=$cmd.sh
+>$file
+echo '#!/bin/sh
+#SBATCH --mem=16g --time=4:00:00 --partition quick -o r03.name.o%A
+export PATH=~/program/maker/bin:$PATH
+maker_map_ids --prefix CA --suffix _R --justify 8 --iterate 1 carAur01.gff > carAur01.maker_id_map
+cp carAur01.gff carAur01.renamed.gff;
+map_gff_ids carAur01.maker_id_map carAur01.renamed.gff;
+cp carAur01.all.maker.proteins.fasta carAur01.all.maker.proteins.renamed.fasta;
+map_fasta_ids carAur01.maker_id_map carAur01.all.maker.proteins.renamed.fasta;
+cp carAur01.all.maker.transcripts.fasta carAur01.all.maker.transcripts.renamed.fasta;
+map_fasta_ids carAur01.maker_id_map carAur01.all.maker.transcripts.renamed.fasta;
+
+perl ~/my_program3/src/utility/czl_gff_util.pl annot -i carAur01.renamed.gff -i2 carAur01.all.cdna2genome.ZF.gff -o carAur01.tmp1.gff -g ../goldfish.arrow.renamed.fasta -tattr "Name=>zf_ens_id,Length=>zf_ens_length" -gattr "Name=>zf_ens_id" -attr-ovl-frac zf_ens_frac -attr-ovl zf_ens_ovl -attr-length zf_ens_len -attr-target zf_ens_target
+perl ~/my_program3/src/utility/czl_gff_util.pl annot -i carAur01.tmp1.gff -i2 carAur01.all.cdna2genome.ens_not_ZF.gff -o carAur01.tmp2.gff -g ../goldfish.arrow.renamed.fasta -tattr "Name=>ens_id" -gattr "Name=>ens_id" -attr-ovl-frac ens_frac -attr-ovl ens_ovl -attr-length ens_len -attr-target ens_target
+perl ~/my_program3/src/utility/czl_gff_util.pl annot -i carAur01.tmp2.gff -i2 carAur01.all.cdna2genome.CC.gff -o carAur01.tmp3.gff -g ../goldfish.arrow.renamed.fasta -tattr "Name=>cc_id" -gattr "Name=>cc_id" -attr-ovl-frac cc_frac -attr-ovl cc_ovl -attr-length cc_len -attr-target cc_target
+perl ~/my_program3/src/utility/czl_gff_util.pl annot -i carAur01.tmp3.gff -i2 carAur01.all.cdna2genome.refseq.gff -o carAur01.tmp4.gff -g ../goldfish.arrow.renamed.fasta -tattr "Name=>refseq_id" -gattr "Name=>refseq_id" -attr-ovl-frac refseq_frac -attr-ovl refseq_ovl -attr-length refseq_len -attr-target refseq_target
+rm carAur01.tmp1.gff
+rm carAur01.tmp2.gff
+rm carAur01.tmp3.gff
+' >> $file
+#map_data_ids hsap_contig.map output.renamed.iprscan
+#map_data_ids hsap_contig.map output.renamed.blastp
+#cmd=r03.name; sbatch --mem=4G -p quick --time=4:00:00  -J $cmd -o $cmd.o%A $cmd.sh
+
+###########################################
+# interproscan
+###########################################
+# mkdir interProScan5_run2
+# There are bugs in  interproscan/5.27-66.0
+# module load interproscan/5.27-66.0
+# interproscan -t n -f TSV,GFF3,HTML -iprlookup --goterms --pathways --minsize 30 ../carAur01.all.maker.transcripts.renamed.fasta  carAur01.n.ips 200
+# interproscan -t p -f TSV,GFF3,HTML -iprlookup --goterms --pathways --minsize 30 ../carAur01.all.maker.proteins.renamed.fasta  carAur01.p.ips 200
+
+cat ../maker4/interProScan5_run1/*/*.tsv > carAur01.ips.tsv;
+cp carAur01.ips.tsv carAur01.ips.rename.tsv
+~/program/maker/bin/map_data_ids --col 1 carAur01.maker_id_map carAur01.ips.rename.tsv 
+
+###########################################
+
+cat carAur01.tmp2.gff | perl -e '
+open IN, "</home/chenz11/data/ensembl85/all.85.gtpnnbbcc";
+while (<IN>) { 
+if (m/^#/ || m/^\s*$/) { next; } chomp; my @t=split "\t"; 
+if ($t[3] ne "." && $t[3]=~m/\S/) { $tr{$t[1]}=[$t[3],$t[4],$t[5],$t[0]]; }
+}
+close IN;
+open IN, "</home/chenz11/data/ncbi/refseq/vertebrate.rna.info.czl.txt";
+while (<IN>) { 
+if (m/^#/ || m/^\s*$/) { next; } chomp; my @t=split "\t"; 
+$tr{$t[1]}=[$t[3],$t[3],$t[4]]; # symbol,  biotype
+}
+close IN;
+while (<>) {
+    if (m/^#/ || m/^\s*$/) { print $_; next; } chomp; my @t=split "\t"; 
+if ($t[2]=~m/gene|mRNA|transcript/) {
+    my %info;    my ($zf_ens_id, $ens_id, $cc_id, $refseq_name);   my ($name,$biotype,$refseq_biotype);
+    foreach my $aa (split /\s*;\s*/, $t[8]) {
+        my ($u,$v) = split /\s*=\s*/,$aa;
+        if (!defined $u) { next; }
+        $v=~s/^[0-9]+_//; $v=~s/^[0-9]+_//;
+        if ($u=~m/zf_ens_id/) { $zf_ens_id=$v; $zf_ens_id=~s/\.[0-9]+$//;}
+        elsif ($u=~m/ens_id/) { $ens_id=$v; $ens_id=~s/\.[0-9]+$//;}
+        elsif ($u=~m/refseq_id/) { $refseq_id=$v; $refseq_id=~s/\.[0-9]+$//;}
+        $info{$u} = $v;
+    }
+    if (defined $zf_ens_id && exists $tr{$zf_ens_id}) {
+		my $id=$zf_ens_id;  $biotype=$tr{$id}[2];
+		if ($t[2]=~m/gene/) { $name=$info{zf_ens_name}=$tr{$id}[0]; $info{zf_ens_id}=$tr{$id}[3];} else { $name=$info{zf_ens_name}=$tr{$id}[1]; }
+        if (exists $info{CDS_stat}) {
+            my $tgt = $info{zf_ens_target}; $tgt=~s/"(.+)"/\1/;
+            my @a1 = split " ", $tgt;
+#            if ($info{CDS_stat}=~m/3/ && ($a1[2]<$info{zf_ens_len}*0.9 || $info{exon_num} < $aa[2]/2)) { $info{pseudo}=1; }
+        }
+    }
+    elsif (defined $ens_id && exists $tr{$ens_id}) {
+		my $id=$ens_id;  $biotype=$tr{$id}[2];
+		if ($t[2]=~m/gene/) { $name=$info{ens_name}=$tr{$id}[0]; $info{ens_id}=$tr{$id}[3];} else { $name=$info{ens_name}=$tr{$id}[1]; }
+        if (exists $info{CDS_stat}) {
+            my $tgt = $info{ens_target}; $tgt=~s/"(.+)"/\1/;
+            my @a1 = split " ", $tgt;
+        }
+    }
+    elsif (defined $refseq_id && exists $tr{$refseq_id}) {
+        $name = $info{refseq_name} = $tr{$refseq_id}[1]; $ref_seq_biotype=$tr{$refseq_id}[2];
+		if ($t[2]=~m/gene/) { $name = $tr{$refseq_id}[0]; }
+        if (exists $info{CDS_stat}) {
+            my $tgt = $info{refseq_target}; $tgt=~s/"(.+)"/\1/;
+            my @a1 = split " ", $tgt;
+        }
+    }
+    if (defined $name) { $info{Name} = $name; }
+    if (defined $biotype) { $info{ens_biotype} = $biotype; }
+    if (defined $refseq_biotype) { $info{refseq_biotype} = $refseq_biotype; }
+    $t[8] = "";  foreach my $u (sort keys(%info)) { if ($t[8]) { $t[8].=";"; } $t[8].="$u=$info{$u}";}
+}
+    print join("\t",@t), "\n";
+}
+' | sed -e 's/CDS_begin/cds_begin/g' -e 's/CDS_end/cds_end/g' -e 's/CDS_stat/cds_stat/g' | sed -e 's/;_/;u/g' > carAur01.add_name.gff
+# add names from ohnolog cluster
+cat ../ohnolog/fish4.cluster/czl_ohno_syn.out3/SYN_or_RBH.pairwise.ZF.GF.cluster.txt | cut -f 4 | perl -ne '
+chomp;
+my @t=split /[,;]/,$_; my $zf_name;
+foreach my $aa (@t) { my ($sp,$chr,$id,$name) = split /:/,$aa; if ($sp eq 'ZF') { $zf_name=$name; } }
+foreach my $aa (@t) {
+	my ($sp,$chr,$id,$name) = split /:/,$aa;
+	if ($sp eq 'GF') {
+		if ($name eq $id || $name eq "." || $name eq "") { print "$id\t$zf_name\n"; } 
+		else { print "$id\t$name\n";}
+	}
+}' > carAur01.ens85_danRer10.ohnolog.name
+# from CC ohnolog
+cat ../ohnolog/fish4.cluster/czl_ohno_syn.out3/SYN_or_RBH.pairwise.CC.GF.cluster.txt | cut -f 4 | perl -ne '
+chomp;
+my @t=split /[,;]/,$_; my $zf_name;
+foreach my $aa (@t) { my ($sp,$chr,$id,$name) = split /:/,$aa; if ($sp eq 'CC' && $name!~m/^LOC/) { $zf_name=$name; } }
+if (!defined $zf_name)  { next; }
+foreach my $aa (@t) {
+	my ($sp,$chr,$id,$name) = split /:/,$aa;
+	if ($sp eq 'GF') {
+		if ($name eq $id || $name eq "." || $name eq "") { print "$id\t$zf_name\n"; } 
+		else { print "$id\t$name\n";}
+	}
+}' > carAur01.CC_NCBI.ohnolog.name
+
+#
+# names from blastn best match
+#
+zcat ../ohnolog/fish17.blastn/pairs.gene.f/GF.ZF.f.join.m6.gz | awk -F$'\t' -v OFS=$'\t' '{print $1,$2,$12}' | sort -k1,1 -k3,3nr | awk -F$'\t' -v OFS=$'\t' '{if ($1!=c) {print $2,$1; c=$1}}' | sed -e 's/ZF|//' -e 's/GF|//' | sort -k 1,1 > a1
+cat ~/data/ensembl85/bed/Danio_rerio.GRCz10.85.gtpnnbbcc | cut -f 1,4 | sort -k1,1 > a2
+join -t $'\t' -j 1 a1 a2 | cut -f 2,3 | sort -k1,1 | uniq > carAur01.ZF_blastn_best.name
+#
+#-------------------------
+# add more names
+#-------------------------
+cat carAur01.add_name.gff | perl -e '
+
+@gname;
+
+open IN, "<carAur01.ens85_danRer10.ohnolog.name";
+while (<IN>) { 
+if (m/^#/ || m/^\s*$/) { next; } chomp; my @t=split "\t"; 
+$gname[0]{$t[0]}=$t[1];
+}
+close IN;
+
+open IN, "<carAur01.CC_NCBI.ohnolog.name";
+while (<IN>) { 
+if (m/^#/ || m/^\s*$/) { next; } chomp; my @t=split "\t"; 
+$gname[1]{$t[0]}=$t[1];
+}
+close IN;
+
+open IN, "<carAur01.ZF_blastn_best.name";
+while (<IN>) { 
+if (m/^#/ || m/^\s*$/) { next; } chomp; my @t=split "\t"; 
+$gname[2]{$t[0]}=$t[1];
+}
+close IN;
+
+while (<>) {
+    if (m/^#/ || m/^\s*$/) { print $_; next; }
+	chomp; my @t=split "\t"; 
+	if ($t[2] eq "gene") {
+		my %info;    my ($zf_ens_id, $ens_id, $cc_id, $refseq_name);   my ($name,$biotype,$refseq_biotype);
+		foreach my $aa (split /\s*;\s*/, $t[8]) {
+			my ($u,$v) = split /\s*=\s*/,$aa;
+			if (!defined $u) { next; }
+			$info{$u} = $v;
+		}
+		if (!exists $info{Name} || $info{Name} eq $info{ID}) {
+			my $id = $info{ID};
+			for (my $k=0; $k<=$#gname; $k++) {
+				if (exists $gname[$k]{$id}) { $info{Name} = $gname[$k]{$id}; last; }
+			}
+		}
+		$t[8] = "ID=$info{ID}";
+		foreach my $u (sort keys(%info)) {
+			if ($u eq "ID") { next; }
+			$t[8] .= ";$u=$info{$u}";
+		}
+		print join("\t",@t), "\n";
+	} else {
+		print $_, "\n";
+	}
+}' > carAur01.add_more_name.gff
+
+#-----------------------------------------
+# add interproscan5 domain
+~/program/maker/bin/ipr_update_gff carAur01.add_name.gff carAur01.ips.rename.tsv > carAur01.add_name_ips.gff 
+~/program/maker/bin/ipr_update_gff carAur01.add_more_name.gff carAur01.ips.rename.tsv > carAur01.add_more_name_ips.gff 
+~/program/maker/bin/iprscan2gff3 carAur01.ips.rename.tsv carAur01.add_more_name.gff > carAur01.ips.gff
+#-----------------------------------------
+

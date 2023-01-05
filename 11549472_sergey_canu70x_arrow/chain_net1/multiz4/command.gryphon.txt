@@ -1,0 +1,317 @@
+file=job.multiz.sh
+target=danRer10
+query=carAur
+tgenome=
+qgenome=
+chain=
+net=
+
+perl ~/my_program3/src/utility/czl_fasta_tba.pl -i /data/projects/burgess/zelin/grass_carp/ng/C_idella_female_linkage_map_anchored_scaffolds.v1.fasta -o gcarpF -s gcarpF
+perl ~/my_program3/src/utility/czl_fasta_tba.pl -i /data/projects/burgess/zelin/danRer10/danRer10.fa -o danRer10 -s danRer10
+ln -s `pwd`/carpNG $wd/carpNG  
+ln -s `pwd`/carAur $wd/carAur  
+ln -s `pwd`/gcarpF $wd/gcarpF 
+ln -s `pwd`/danRer10  $wd/danRer10 
+
+ln -s `pwd`/gcarpF.vs.carAur.sing.maf gcarpF.carAur.sing.maf
+ln -s `pwd`/gcarpF.vs.carpNG.sing.maf gcarpF.carpNG.sing.maf
+ln -s `pwd`/carAur.vs.carpNG.sing.maf carAur.carpNG.sing.maf
+ln -s `pwd`/carpNG.vs.carAur.sing.maf carpNG.carAur.sing.maf
+ln -s `pwd`/gcarpF.vs.carAur.orig.maf gcarpF.carAur.orig.maf
+ln -s `pwd`/gcarpF.vs.carpNG.orig.maf gcarpF.carpNG.orig.maf
+ln -s `pwd`/carAur.vs.carpNG.orig.maf carAur.carpNG.orig.maf
+ln -s `pwd`/carpNG.vs.carAur.orig.maf carpNG.carAur.orig.maf
+ln -s `pwd`/danRer10.vs.carAur.sing.maf danRer10.carAur.sing.maf
+ln -s `pwd`/danRer10.vs.carpNG.sing.maf danRer10.carpNG.sing.maf
+ln -s `pwd`/danRer10.vs.carAur.sing.maf danRer10.gcarpF.sing.maf
+ln -s `pwd`/danRer10.vs.carAur.orig.maf danRer10.carAur.orig.maf
+ln -s `pwd`/danRer10.vs.carpNG.orig.maf danRer10.carpNG.orig.maf
+ln -s `pwd`/danRer10.vs.gcarpF.orig.maf danRer10.gcarpF.orig.maf
+
+
+
+file=job.01.maf.pair.cmd
+echo '#!/bin/sh' > $file
+echo '#$ -V -cwd' >> $file
+echo '#$ -l mf=8G' >> $file
+touch dummy.bed
+for i in `seq 1 $(wc -l input | cut -d' ' -f 1 | head -n 1)`
+do
+  tpre=`head -n $i input | tail -n 1 | cut -f 1`
+  qpre=`head -n $i input | tail -n 1 | cut -f 2`
+  t=`head -n $i input | tail -n 1 | cut -f 3`
+  q=`head -n $i input | tail -n 1 | cut -f 4`
+  tgenome=`head -n $i input | tail -n 1 | cut -f 5`
+  qgenome=`head -n $i input | tail -n 1 | cut -f 6`
+  dir=../$t.vs.$q
+  out=$tpre.vs.$qpre
+  echo "netToAxt $dir/all.target.net $dir/all.prenet.chain $tgenome.2bit $qgenome.2bit $out.orig.axt" >> $file
+  echo "axtToMaf $out.orig.axt $tgenome.chromSizes $qgenome.chromSizes $out.orig.maf -tPrefix=$tpre. -qPrefix=$qpre." >> $file
+  echo "rm $out.orig.axt" >> $file
+  echo "single_cov2 $out.orig.maf S=$t F=$out.orig.deleted.maf > $out.sing.maf" >> $file
+# mafSplit -byTarget dummy.bed $out.maf.by_target/ $out.maf
+done
+exit 0
+for f in `ls $out.maf.by_target/*`
+do
+  phyloFit -i MAF $f
+done
+
+multiz danRer10.vs.carAur.sing.maf danRer10.vs.carpNG.sing.maf v? danRer10.vs.carAur.sing.maf.unused danRer10.vs.carpNG.sing.maf.unused
+# or
+roast + M=30 P=multiz T=./tmp X=0 E=danRer10 "`cat tree3.nw`" *.maf danRer10.carAur.carpNG.maf
+
+mkdir maf_split
+mkdir maf_split/phastcons
+mafSplit -byTarget dummy.bed maf_split/ danRer10.carAur.carpNG.maf
+#
+file=job.01.phastcons.t3.cmd
+echo '#!/bin/sh' > $file
+echo '#$ -V -cwd' >> $file
+echo '#$ -l mf=2G' >> $file
+echo '#$ -tc 100 -t 1-'`ls maf_split/*.maf | wc -l | head -n 1` >> $file
+echo '#$ -j yes -o '`pwd`'/maf_split/job.o$JOB_ID.$TASK_ID' >> $file
+echo 'i=$SGE_TASK_ID' >> $file
+echo 'maf=`ls -v maf_split/*.maf | head -n $i | tail -n 1`' >> $file
+echo 'out=`echo $maf | sed -e "s/^.*\///" -e "s/\.maf$//"`' >> $file
+echo 'phyloFit --tree "`cat tree3.nw`" --out-root $maf.phyloFit3 --subst-mod REV --nrate 4 -i MAF $maf' >> $file
+echo 'phastCons --target-coverage 0.25 --expected-length 45 --rho 0.3 --msa-format MAF $maf $maf.phyloFit3.mod --seqname `cat $maf | head -n 3 | tail -n 1 | tr -s " " | cut -f 2 -d " " | cut -d. -f2 | sed "s/[^\.]\+\.//"` --most-conserved maf_split/phastcons/$out.bed > maf_split/phastcons/$out.wig' >> $file
+
+################################################################
+#  gcarpF carAur carpNG
+################################################################
+
+wd=gcarpF.carpNG.carAur
+mkdir gcarpF.carpNG.carAur
+ln -s `pwd`/gcarpF.vs.carAur.sing.maf $wd/gcarpF.carAur.sing.maf
+ln -s `pwd`/gcarpF.vs.carpNG.sing.maf $wd/gcarpF.carpNG.sing.maf
+ln -s `pwd`/carAur.vs.carpNG.sing.maf $wd/carAur.carpNG.sing.maf
+ln -s `pwd`/carpNG.vs.carAur.sing.maf $wd/carpNG.carAur.sing.maf
+ln -s `pwd`/gcarpF.vs.carAur.orig.maf $wd/gcarpF.carAur.orig.maf
+ln -s `pwd`/gcarpF.vs.carpNG.orig.maf $wd/gcarpF.carpNG.orig.maf
+ln -s `pwd`/carAur.vs.carpNG.orig.maf $wd/carAur.carpNG.orig.maf
+ln -s `pwd`/carpNG.vs.carAur.orig.maf $wd/carpNG.carAur.orig.maf
+ln -s `pwd`/gcarpF.vs.carAur.orig.maf $wd/gcarpF.carAur.toast.maf
+ln -s `pwd`/gcarpF.vs.carpNG.orig.maf $wd/gcarpF.carpNG.toast.maf
+ln -s `pwd`/carAur.vs.carpNG.orig.maf $wd/carAur.carpNG.toast.maf
+ln -s `pwd`/carpNG.vs.carAur.orig.maf $wd/carpNG.carAur.toast.maf
+echo '(gcarpF (carAur carpNG))' > $wd/tree3.nw
+
+mkdir $wd/tmp
+cp dummp.bed $wd/
+cd $wd
+file=job.01.roast.cmd
+>$file
+echo 'roast + M=30 P=multiz T=./tmp X=0 E=gcarpF "`cat tree3.nw`" *.sing.maf roast.mz.maf; ' >> $file
+echo 'maf_project roast.mz.maf carAur | maf_order /dev/stdin carAur carpNG gcarpF > roast.mz.carAur.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed roast.mz.carAur.maf_split/ roast.mz.carAur.maf' >> $file
+echo 'maf_project roast.mz.maf gcarpF | maf_order /dev/stdin gcarpF carAur carpNG > roast.mz.gcarpF.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed roast.mz.gcarpF.maf_split/ roast.mz.gcarpF.maf' >> $file
+
+echo 'roast + M=30 P=multic T=./tmp X=0 E=gcarpF "`cat tree3.nw`" *.orig.maf roast.mc.maf;' >> $file
+echo 'maf_project roast.mc.maf carAur | maf_order /dev/stdin carAur carpNG gcarpF > roast.mc.carAur.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed roast.mc.carAur.maf_split/ roast.mc.carAur.maf' >> $file
+echo 'maf_project roast.mc.maf gcarpF | maf_order /dev/stdin gcarpF carAur carpNG > roast.mc.gcarpF.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed roast.mc.gcarpF.maf_split/ roast.mc.gcarpF.maf' >> $file
+
+file=job.01.tba.cmd
+>$file
+echo 'tba + M=30 P=multiz X=0 E=gcarpF "`cat tree3.nw`" *.sing.maf tba.mz.maf; ' >> $file
+echo 'maf_project tba.mz.maf carAur | maf_order /dev/stdin carAur carpNG gcarpF > tba.mz.carAur.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed tba.mz.carAur.maf_split/ 'tba.mz.carAur.maf >> $file
+echo 'maf_project tba.mz.maf gcarpF | maf_order /dev/stdin gcarpF carAur carpNG > tba.mz.gcarpF.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed tba.mz.gcarpF.maf_split/ 'tba.mz.gcarpF.maf >> $file
+
+echo 'tba + M=30 P=multic X=1 E=gcarpF "`cat tree3.nw`" *.toast.maf tba.mc.maf; maf_project tba.mc.maf carAur > tba.mc.carAur.maf' >> $file
+echo 'maf_project tba.mc.maf carAur | maf_order /dev/stdin carAur carpNG gcarpF > tba.mc.carAur.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed tba.mc.carAur.maf_split/ 'tba.mc.carAur.maf >> $file
+echo 'maf_project tba.mc.maf gcarpF | maf_order /dev/stdin gcarpF carAur carpNG > tba.mc.gcarpF.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed tba.mc.gcarpF.maf_split/ 'tba.mc.gcarpF.maf >> $file
+
+cd ..
+
+# cd $wd; swarm -b 5 --concurrent 50 -g 4 --name job.01.tba.cmd --sge-opt '-V -cwd' -f 
+
+cd $wd
+for t in roast.mz roast.mc tba.mz tba.mc
+do
+for sp in gcarpF carAur
+do
+maf_dir=$t.$sp.maf_split
+echo $maf_dir
+file=job.02.$t.$sp.phastcons.cmd
+>$file
+if ! [ -d $maf_dir ]; then mkdir $maf_dir/phastcons; fi
+for maf in `ls -v $maf_dir/*.maf`
+do
+	out=`echo $maf | sed -e "s/^.*\///" -e "s/\.maf$//"`
+	echo 'f=`stat -c %s '$maf'`' >> $file
+	echo 'if [ $f -gt 20000 ]; then phyloFit --tree "'`cat tree3.nw | sed "s/ \+/,/g"`'" --out-root '$maf'.phyloFit3 --subst-mod REV --nrate 4 -i MAF '$maf'; else phyloFit --tree "'`cat tree3.nw | sed "s/ \+/,/g"`'" --out-root '$maf'.phyloFit3 --subst-mod REV -i MAF '$maf'; fi ' >> $file
+	echo 'phastCons --target-coverage 0.25 --expected-length 12 --rho 0.4 --msa-format MAF "'$maf'" "'$maf'.phyloFit3.mod" --seqname `cat "'$maf'" | head -n 3 | tail -n 1 | tr -s " " | cut -f 2 -d " " | cut -d. -f2 | sed "s/[^\.]\+\.//"` --most-conserved "'$maf_dir'/phastcons/'$out'.bed" > "'$maf_dir'/phastcons/'$out'.wig"; ' >> $file
+done
+done
+done
+cd ..
+
+# name=job.02.roast.mz.carAur.phastcons; mkdir $name.log; rm $name.log/*; swarm -f $name.cmd -b 3 --concurrent 100 -g 8 --name $name --sge-opt '-V -cwd -j yes -o '`pwd`'/'$name'.log/$JOB_ID.$TASK_ID'
+# for p in roast.mz roast.mc tba.mz tba.mc; do for sp in carAur gcarpF; do name=job.02.$p.$sp.phastcons; mkdir $name.log; rm $name.log/*; swarm -f $name.cmd -b 3 --concurrent 100 -g 8 --name $name --sge-opt '-V -cwd -j yes -o '`pwd`'/'$name'.log/$JOB_ID.$TASK_ID'; done; done
+
+cd $wd
+for p in roast.mz roast.mc tba.mz tba.mc
+do
+for sp in gcarpF carAur
+do
+file=job.03.$p.$sp.phastcons.concat.cmd
+>$file
+maf_dir=$p.$sp.maf_split
+echo '>'$p'.'$sp'.phastcons.bed' >> $file
+echo '>'$p'.'$sp'.phastcons.wig' >> $file
+echo 'for maf in `ls -v '$maf_dir'/*.maf`; do out=`echo $maf | sed -e "s/^.*\///" -e "s/\.maf$//"`; cat '$maf_dir'/phastcons/$out.bed  >> '$p'.'$sp'.phastcons.bed; done' >> $file
+echo 'for maf in `ls -v '$maf_dir'/*.maf`; do out=`echo $maf | sed -e "s/^.*\///" -e "s/\.maf$//"`; cat '$maf_dir'/phastcons/$out.wig  >> '$p'.'$sp'.phastcons.wig; done' >> $file
+done
+done
+cd ..
+
+##########################################################
+
+
+################################################################
+#  danRer10  gcarpF  carAur  carpNG
+################################################################
+
+wd=danRer10.gcarpF.carAur.carpNG
+mkdir -p $wd/tmp
+ln -s `pwd`/carpNG $wd/carpNG  
+ln -s `pwd`/carAur $wd/carAur  
+ln -s `pwd`/gcarpF $wd/gcarpF 
+ln -s `pwd`/danRer10  $wd/danRer10 
+ln -s `pwd`/gcarpF.vs.carAur.sing.maf $wd/gcarpF.carAur.sing.maf
+ln -s `pwd`/gcarpF.vs.carpNG.sing.maf $wd/gcarpF.carpNG.sing.maf
+ln -s `pwd`/carAur.vs.carpNG.sing.maf $wd/carAur.carpNG.sing.maf
+ln -s `pwd`/carpNG.vs.carAur.sing.maf $wd/carpNG.carAur.sing.maf
+ln -s `pwd`/gcarpF.vs.carAur.orig.maf $wd/gcarpF.carAur.orig.maf
+ln -s `pwd`/gcarpF.vs.carpNG.orig.maf $wd/gcarpF.carpNG.orig.maf
+ln -s `pwd`/carAur.vs.carpNG.orig.maf $wd/carAur.carpNG.orig.maf
+ln -s `pwd`/carpNG.vs.carAur.orig.maf $wd/carpNG.carAur.orig.maf
+ln -s `pwd`/gcarpF.vs.carAur.orig.maf $wd/gcarpF.carAur.toast.maf
+ln -s `pwd`/gcarpF.vs.carpNG.orig.maf $wd/gcarpF.carpNG.toast.maf
+ln -s `pwd`/carAur.vs.carpNG.orig.maf $wd/carAur.carpNG.toast.maf
+ln -s `pwd`/carpNG.vs.carAur.orig.maf $wd/carpNG.carAur.toast.maf
+ln -s `pwd`/danRer10.vs.carAur.sing.maf $wd/danRer10.carAur.sing.maf
+ln -s `pwd`/danRer10.vs.carpNG.sing.maf $wd/danRer10.carpNG.sing.maf
+ln -s `pwd`/danRer10.vs.gcarpF.sing.maf $wd/danRer10.gcarpF.sing.maf
+ln -s `pwd`/danRer10.vs.carAur.orig.maf $wd/danRer10.carAur.orig.maf
+ln -s `pwd`/danRer10.vs.carpNG.orig.maf $wd/danRer10.carpNG.orig.maf
+ln -s `pwd`/danRer10.vs.gcarpF.orig.maf $wd/danRer10.gcarpF.orig.maf
+ln -s `pwd`/danRer10.vs.carAur.orig.maf $wd/danRer10.carAur.toast.maf
+ln -s `pwd`/danRer10.vs.carpNG.orig.maf $wd/danRer10.carpNG.toast.maf
+ln -s `pwd`/danRer10.vs.gcarpF.orig.maf $wd/danRer10.gcarpF.toast.maf
+echo '(danRer10 (gcarpF (carAur carpNG)))' > $wd/tree.nw
+
+cd $wd
+file=job.01.roast.cmd
+>$file
+cp dummp.bed $wd/
+echo 'roast + M=30 P=multiz T=./tmp X=0 E=danRer10 "`cat tree.nw`" *.sing.maf roast.mz.maf;' >> $file
+echo 'maf_project roast.mz.maf carAur | maf_order /dev/stdin carAur carpNG gcarpF danRer10 > roast.mz.carAur.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed roast.mz.carAur.maf_split/ roast.mz.carAur.maf' >> $file
+echo 'maf_project roast.mz.maf danRer10 | maf_order /dev/stdin danRer10 carAur carpNG gcarpF > roast.mz.danRer10.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed roast.mz.danRer10.maf_split/ roast.mz.danRer10.maf' >> $file
+
+echo 'roast + M=30 P=multic T=./tmp X=0 E=danRer10 "`cat tree.nw`" *.orig.maf roast.mc.maf;' >> $file
+echo 'maf_project roast.mc.maf carAur | maf_order /dev/stdin carAur carpNG gcarpF danRer10 > roast.mc.carAur.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed roast.mc.carAur.maf_split/ roast.mc.carAur.maf' >> $file
+echo 'maf_project roast.mc.maf danRer10 | maf_order /dev/stdin danRer10 carAur carpNG gcarpF > roast.mc.danRer10.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed roast.mc.danRer10.maf_split/ roast.mc.danRer10.maf' >> $file
+
+# cd $wd; swarm -b 5 -f job.01.roast.cmd --concurrent 50 -g 4 --name job.01.roast --sge-opt '-V -cwd'
+cd ..
+
+cd $wd
+file=job.01.tba.cmd
+>$file
+echo 'tba + M=30 P=multiz X=0 E=danRer10 "`cat tree.nw`" *.sing.maf tba.mz.maf; ' >> $file
+echo 'maf_project tba.mz.maf carAur | maf_order /dev/stdin carAur carpNG gcarpF danRer10 > tba.mz.carAur.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed tba.mz.carAur.maf_split/ tba.mz.carAur.maf' >> $file
+echo 'maf_project tba.mz.maf danRer10 | maf_order /dev/stdin danRer10 carAur carpNG gcarpF > tba.mz.danRer10.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed tba.mz.danRer10.maf_split/ tba.mz.danRer10.maf' >> $file
+
+echo 'tba + M=30 P=multic X=1 E=danRer10 "`cat tree.nw`" *.toast.maf tba.mc.maf; ' >> $file
+echo 'maf_project tba.mc.maf carAur | maf_order /dev/stdin carAur carpNG gcarpF danRer10 > tba.mc.carAur.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed tba.mc.carAur.maf_split/ tba.mc.carAur.maf' >> $file
+echo 'maf_project tba.mc.maf danRer10 | maf_order /dev/stdin danRer10 carAur carpNG gcarpF > tba.mc.danRer10.maf ' >> $file
+echo 'mafSplit -byTarget dummy.bed tba.mc.danRer10.maf_split/ tba.mc.danRer10.maf' >> $file
+
+# cd $wd; swarm -b 5 -f job.01.tba.cmd --concurrent 50 -g 20 --name job.01.tba --sge-opt '-V -cwd'
+cd ..
+
+cd $wd
+for t in roast.mz roast.mc tba.mz tba.mc
+do
+for sp in danRer10 carAur
+do
+maf_dir=$t.$sp.maf_split
+file=job.02.$t.$sp.phastcons.cmd
+>$file
+echo $maf_dir
+if ! [ -d $maf_dir/phastcons ]; then mkdir $maf_dir/phastcons; fi
+for maf in `ls -v $maf_dir/*.maf`
+do
+	out=`echo $maf | sed -e "s/^.*\///" -e "s/\.maf$//"`
+	echo 'f=`stat -c %s '$maf'`' >> $file
+	echo 'if [ $f -gt 20000 ]; then phyloFit --tree "'`cat tree.nw | sed "s/ \+/,/g"`'" --out-root '$maf'.phyloFit3 --subst-mod REV --nrate 4 -i MAF '$maf'; else phyloFit --tree "'`cat tree.nw | sed "s/ \+/,/g"`'" --out-root '$maf'.phyloFit3 --subst-mod REV -i MAF '$maf'; fi ' >> $file
+	echo 'phastCons --target-coverage 0.25 --expected-length 12 --rho 0.4 --msa-format MAF "'$maf'" "'$maf'.phyloFit3.mod" --seqname `cat "'$maf'" | head -n 3 | tail -n 1 | tr -s " " | cut -f 2 -d " " | cut -d. -f2 | sed "s/[^\.]\+\.//"` --most-conserved "'$maf_dir'/phastcons/'$out'.bed" > "'$maf_dir'/phastcons/'$out'.wig"; ' >> $file
+done
+done
+done
+cd ..
+
+# name=job.02.roast.mz.phastcons; mkdir $name.log; rm $name.log/*; swarm -f $name.cmd -b 3 --concurrent 100 -g 12 --name $name --sge-opt '-V -cwd -j yes -o '`pwd`'/'$name'.log/$JOB_ID.$TASK_ID'
+# for p in roast.mz roast.mc tba.mz tba.mc; do for sp in carAur gcarpF; do name=job.02.$p.$sp.phastcons; mkdir $name.log; rm $name.log/*; swarm -f $name.cmd -b 3 --concurrent 100 -g 16 --name $name --sge-opt '-V -cwd -j yes -o '`pwd`'/'$name'.log/$JOB_ID.$TASK_ID'; done; done
+
+cd $wd
+for p in roast.mz roast.mc tba.mz tba.mc
+do
+for sp in danRer10 carAur
+do
+file=job.03.$p.$sp.phastcons.concat.cmd
+>$file
+maf_dir=$p.$sp.maf_split
+echo '>'$p'.'$sp'.phastcons.bed' >> $file
+echo '>'$p'.'$sp'.phastcons.wig' >> $file
+echo 'for maf in `ls -v '$maf_dir'/*.maf`; do out=`echo $maf | sed -e "s/^.*\///" -e "s/\.maf$//"`; cat '$maf_dir'/phastcons/$out.bed  >> '$p'.'$sp'.phastcons.bed; done' >> $file
+echo 'for maf in `ls -v '$maf_dir'/*.maf`; do out=`echo $maf | sed -e "s/^.*\///" -e "s/\.maf$//"`; cat '$maf_dir'/phastcons/$out.wig  >> '$p'.'$sp'.phastcons.wig; done' >> $file
+echo 'cat '$p'.'$sp'.phastcons.bed | sort -k1,1 -k2,2g > '$p'.'$sp'.phastcons.bed.tmp; mv '$p'.'$sp'.phastcons.bed.tmp '$p'.'$sp'.phastcons.bed;' >> $file
+done
+done
+cd ..
+
+
+#############################################
+#  danRer10 vs carAur01 test
+#############################################
+ln -s ../danRer10.vs.carAur.orig.maf danRer10.carAur.orig.maf
+ln -s ../danRer10.vs.carAur.sing.maf danRer10.carAur.sing.maf
+ln -s ../carAur.vs.danRer10.orig.maf carAur.danRer10.orig.maf
+ln -s ../carAur.vs.danRer10.sing.maf carAur.danRer10.sing.maf
+sp=danRer10
+file=job.02.$sp.sing.phastcons.cmd
+>$file
+maf_dir=$sp.sing.maf_split
+echo $maf_dir
+if ! [ -d $maf_dir/phastcons ]; then mkdir $maf_dir/phastcons; fi
+for maf in `ls -v $maf_dir/*.maf`
+do
+	out=`echo $maf | sed -e "s/^.*\///" -e "s/\.maf$//"`
+	echo 'f=`stat -c %s '$maf'`' >> $file
+	echo 'if [ $f -gt 20000 ]; then phyloFit --out-root '$maf'.phyloFit3 --subst-mod REV --nrate 4 -i MAF '$maf'; else phyloFit --out-root '$maf'.phyloFit3 --subst-mod REV -i MAF '$maf'; fi ' >> $file
+	echo 'phastCons --target-coverage 0.25 --expected-length 45 --rho 0.3 --msa-format MAF "'$maf'" "'$maf'.phyloFit3.mod" --seqname `cat "'$maf'" | head -n 3 | tail -n 1 | tr -s " " | cut -f 2 -d " " | cut -d. -f2 | sed "s/[^\.]\+\.//"` --most-conserved "'$maf_dir'/phastcons/'$out'.bed" > "'$maf_dir'/phastcons/'$out'.wig"; ' >> $file
+done
+file=job.03.$sp.sing.phastcons.concat.cmd
+>$file
+maf_dir=$sp.sing.maf_split
+echo '>'$sp'sing.phastcons.bed' >> $file
+echo '>'$sp'sing.phastcons.wig' >> $file
+echo 'for maf in `ls -v '$maf_dir'/*.maf`; do out=`echo $maf | sed -e "s/^.*\///" -e "s/\.maf$//"`; cat '$maf_dir'/phastcons/$out.bed  >> '$sp'.sing.phastcons.bed; done' >> $file
+echo 'for maf in `ls -v '$maf_dir'/*.maf`; do out=`echo $maf | sed -e "s/^.*\///" -e "s/\.maf$//"`; cat '$maf_dir'/phastcons/$out.wig  >> '$sp'.sing.phastcons.wig; done' >> $file
+echo 'cat '$sp'.sing.phastcons.bed | sort -k1,1 -k2,2g > '$sp'.sing.phastcons.bed.tmp; mv '$sp'.sing.phastcons.bed.tmp '$sp'.sing.phastcons.bed;' >> $file

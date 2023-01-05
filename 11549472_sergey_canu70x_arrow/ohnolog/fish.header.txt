@@ -1,0 +1,1 @@
+CommonName	ScientificName	SpeciesClan	ShortCut	ProteinSeqFasta	cDNASeqFasta	ncRNAFasta

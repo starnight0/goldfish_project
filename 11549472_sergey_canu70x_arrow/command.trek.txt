@@ -1,0 +1,35 @@
+# datadir=`pwd | sed 's/^.*data_cmd/~\/data/`
+datadir=~/data/goldfish/11549472/sergey_canu70x/arrow
+genome=/home/chenz11/data/goldfish/11549472/sergey_canu70x/arrow/goldfish.arrow.renamed.fasta
+file=S01.bam_XA_to_bam.sh
+>$file
+for i in `seq 1 19`
+do
+	j=`printf "%03i" $i`
+	echo "~/my_program3/src/utility/czl_bam_XA_to_bam -i HC2NCBCXX_bwa/L001_$j.bam -g $genome -o HC2NCBCXX_bwa/L001_$j.eXA.bam" >> $file
+done
+for i in `seq 1 20`
+do
+	j=`printf "%03i" $i`
+	echo "~/my_program3/src/utility/czl_bam_XA_to_bam -i HC2NCBCXX_bwa/L002_$j.bam -g $genome -o HC2NCBCXX_bwa/L002_$j.eXA.bam" >> $file
+done
+# swarm --gb-per-process 4 -f S01.bam_XA_to_bam.sh --sge-opts '-o log/S01.bam_XA_to_bam.sh.o\$JOB_ID.\$TASK_ID -e log/S01.bam_XA_to_bam.sh.e\$JOB_ID.\$TASK_ID'
+
+file=S01.bam_XA_to_bam.10XG.sh
+>$file
+for i in `seq 100 263`
+do
+	j=`printf "%03i" $i`
+	echo "~/my_program3/src/utility/czl_bam_XA_to_bam -i 10X_bwa/L001_$j.bc.bam -g $genome -o 10X_bwa/L001_$j.bc.eXA.bam" >> $file
+done
+# swarm --gb-per-process 4 -f S01.bam_XA_to_bam.10XG.sh --sge-opts '-o log/S01.bam_XA_to_bam.10XG.sh.o\$JOB_ID.\$TASK_ID -e log/S01.bam_XA_to_bam.10XG.sh.e\$JOB_ID.\$TASK_ID'
+
+cat mummer_self/ovl_l1000I97h500/edge.contained.*_depth | cut -f 2 | sort -k1,1 > contained.l1000I97h500.ctg_name
+~/my_program3/src/utility/czl_fasta_fetch -i goldfish.arrow.renamed.fasta -m 1 --list contained.l1000I97h500.ctg_name -o goldfish.arrow.renamed.not_contained.fasta --is_not T
+mv goldfish.arrow.renamed.not_contained.fastafa goldfish.arrow.renamed.not_contained.fasta  
+~/my_program3/src/utility/czl_fasta_fetch -i goldfish.arrow.renamed.fasta -m 1 --list contained.l1000I97h500.ctg_name -o goldfish.arrow.renamed.contained.fasta --is_not F
+mv goldfish.arrow.renamed.contained.fastafa goldfish.arrow.renamed.contained.fasta  
+samtools faidx goldfish.arrow.renamed.contained.fasta
+samtools faidx goldfish.arrow.renamed.not_contained.fasta
+
+cp $datadir/RM1/repeatmasker_ncbi_self_model/goldfish.arrow.renamed.fasta.masked $datadir/goldfish.arrow.renamed.masked.fasta

@@ -1,0 +1,62 @@
+wd=/home/chenz11/data/goldfish/11549472/sergey_canu70x/arrow
+
+unmasked_gid_file=$wd/carAur01/carAur01.gene.unmasked.gids
+masked_gid_file=$wd/carAur01/carAur01.gene.masked.gids
+masked_bgp=$wd/carAur03/big/carAur03.noM.gene.masked.bgp
+unmasked_bgp=$wd/carAur03/big/carAur03.noM.gene.unmasked.bgp
+
+CC_2bit=~/data/common_carp/NCBI_Cyprinus_carpio/Cyprinus_carpio.sm.2bit
+GF_2bit=$wd/carAur03/carAur03.2bit
+ZF_cdna_fa=/home/chenz11/data/zebrafish/ensembl85/Danio_rerio.GRCz10.cdna.all.fa
+
+blat_wd=$wd/carAur03/big/blat
+gene_cluster_file=$HOME/data/goldfish/11549472/sergey_canu70x/arrow/ohnolog/fish4.cluster/czl_ohno_syn.out3.4/rescue_m1.6.cluster.txt
+gene_to_cluster_file=$HOME/data/goldfish/11549472/sergey_canu70x/arrow/ohnolog/fish4.cluster/czl_ohno_syn.out3.4/rescue_m1.6.anchor_to_cluster.txt
+
+#############################################################
+# Use BLAT PSL
+#############################################################
+
+#------------------------------
+#filer GF het contig and cdna
+#------------------------------
+
+
+############################################################
+# validate copy lost
+############################################################
+# for each cluster that with lost gene in GF (or CC)
+#   g0: ZF or GC gene
+#   g10, g11, ...: GF gene(s) in the cluster
+#   g20, g21, ...: CC gene(s) in the cluster
+#   if exists g0, g10, g20, g21, (g11 is missing)
+#     AND g0 align to g10 and loc11, loc12, ...
+#     AND (
+#       loc11 is not annotated
+#       OR
+#       loc11 is annotated and the gene is not in any other clusters with CC genes
+#     )
+#   loc11 is good candidate for g11 and g11 may not be missing
+
+
+CC_genome_ZF_cdna_psl=$blat_wd/CC_genome/ZF_cdna/blat.psl
+GF_genome_ZF_cdna_psl=$blat_wd/GF_genome/ZF_cdna/blat.psl
+
+for sp in GC GF CC
+do
+	sort -s -S 6G -k 10,10 $blat_wd/${sp}_genome/ZF_cdna/blat.psl > $blat_wd/${sp}_genome/ZF_cdna/blat.sort_qname.psl 
+	pslCDnaFilter -globalNearBest=0.2 -minCover=0.5 -minId=0.7 $blat_wd/${sp}_genome/ZF_cdna/blat.sort_qname.psl  $blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.psl 
+	perl -I$HOME/lib/perl5/ -I$HOME/my_program3/src/perl_pm  ~/my_program3/projects/annot_genome/czl_filter_cdna_align.pl -i blat.CDnaFilter.psl -o blat.CDnaFilter.f.psl --gap 50000 --min-intron 60
+	pslCDnaFilter -globalNearBest=0.2 -minCover=0.5 -minId=0.7 -maxAlignsDrop=20 $blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.f.psl  $blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.f2.psl 
+	pslCDnaFilter -globalNearBest=0.2 -minCover=0.5 -minId=0.7 -bestOverlap -filterWeirdOverlapped -weirdOverlapped=$blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.f.weird_overlap.psl  $blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.f.psl  $blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.f3.psl 
+	pslToBed $blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.f.psl $blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.f.psl.bed 
+	cat $blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.f.psl.bed | sort -k1,1 -k2,2n > $blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.f.psl.sort_pos.bed 
+	pslScore $blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.f.psl > $blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.f.pslScore
+done
+# psl to pslx
+sp=CC; pslToPslx -masked $blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.psl $ZF_cdna_fa $CC_2bit $blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.pslx 
+sp=GF; pslToPslx -masked $blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.psl $ZF_cdna_fa $GF_2bit $blat_wd/${sp}_genome/ZF_cdna/blat.CDnaFilter.pslx 
+
+for sp in GF CC
+done
+

@@ -1,0 +1,43 @@
+>all4.3.chromSizes
+cat ~/data/danRer10/danRer10.chrom.sizes | awk '{print "ZF\t"$0}' >>all4.3.chromSizes
+cat ~/data/goldfish/11549472/sergey_canu70x/arrow/carAur03/carAur03.sm.fa.chromSizes | awk '{print "GF\t"$0}' >>all4.3.chromSizes
+cat ~/data/common_carp/NCBI_Cyprinus_carpio/Cyprinus_carpio.sm.fa.fai | awk '{print "CC\t"$1"\t"$2}' >>all4.3.chromSizes
+cat /home/chenz11/data/grass_carp/ng/Ctenopharyngodon_idellus_female/C_idella_female.LG.v1.sm.fasta.fai | awk '{print "GC\t"$1"\t"$2}' >>all4.3.chromSizes
+
+## ZF-CC-GF 
+mkdir by_ZF_chain
+for i in `seq 1 25`
+do
+    i2=`expr $i + 25`;
+    j1=`expr $i \* 2 - 1`;
+    j2=`expr $i \* 2`;
+    dir=by_ZF_chain/chr$i;
+    if ! [ -d $dir ]; then mkdir -p $dir; fi
+    echo $dir
+    cat ZF_GF.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '$3~/^chr'$i'/ && ($8~/^LG'$i'(|M|F|B)$/ || $8~/^LG'$i2'(|M|F|B)$/) {print $0"\n"}' > $dir/ZF_GF.noalign.chain
+    cat GF_ZF.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '$8~/^chr'$i'/ && ($3~/^LG'$i'(|M|F|B)$/ || $3~/^LG'$i2'(|M|F|B)$/) {print $0"\n"}' > $dir/GF_ZF.noalign.chain
+    cat ZF_CC.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '$3~/^chr'$i'/ && ($8~/^chr'$j1'$/ || $8~/^chr'$j2'$/) {print $0"\n"}' > $dir/ZF_CC.noalign.chain
+    cat CC_ZF.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '$8~/^chr'$i'/ && ($3~/^chr'$j1'$/ || $3~/^chr'$j2'$/) {print $0"\n"}' > $dir/CC_ZF.noalign.chain
+    cat CC_GF.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '($3~/^chr'$j1'$/ || $3~/^chr'$j2'$/) && ($8~/^LG'$i'(|M|F|B)$/ || $8~/^LG'$i2'(|M|F|B)$/) {print $0"\n"}' > $dir/CC_GF.noalign.chain
+    cat GF_CC.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '($8~/^chr'$j1'$/ || $8~/^chr'$j2'$/) && ($3~/^LG'$i'(|M|F|B)$/ || $3~/^LG'$i2'(|M|F|B)$/) {print $0"\n"}' > $dir/GF_CC.noalign.chain
+done
+
+for i in `seq 1 25`
+do
+    i2=`expr $i + 25`;
+    j1=`expr $i \* 2 - 1`;
+    j2=`expr $i \* 2`;
+    dir=by_ZF_chain/chr$i
+    echo CC${j1}_GF${i}_ZF${i}_GF${i2}_CC${j2}
+    chrs="CC,chr$j1|GF,LG$i:GF,LG${i}M:GF,LG${i}F:GF,LG${i}B|ZF,chr$i|GF,LG$i2:GF,LG${i2}M:GF,LG${i2}F:GF,LG${i2}B|CC,chr$j2"
+    perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an anchor --chr-size-file all4.3.chromSizes  --width 1500 --height 2000 -o by_ZF_chain/chr$i/CC${j1}_GF${i}_ZF${i}_GF${i2}_CC${j2}. -at chain  --no-gene-name --align-file CC:GF:$dir/CC_GF.noalign.chain,GF:CC:$dir/GF_CC.noalign.chain,ZF:GF:$dir/ZF_GF.noalign.chain,GF:ZF:$dir/GF_ZF.noalign.chain,ZF:CC:$dir/ZF_CC.noalign.chain,CC:ZF:$dir/CC_ZF.noalign.chain --chr $chrs
+    gnuplot $dir/CC${j1}_GF${i}_ZF${i}_GF${i2}_CC${j2}.gp
+
+    j2=`expr $i \* 2 - 1`;
+    j1=`expr $i \* 2`;
+    echo CC${j1}_GF${i}_ZF${i}_GF${i2}_CC${j2}
+    chrs="CC,chr$j1|GF,LG$i:GF,LG${i}M:GF,LG${i}F:GF,LG${i}B|ZF,chr$i|GF,LG$i2:GF,LG${i2}M:GF,LG${i2}F:GF,LG${i2}B|CC,chr$j2"
+    perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an anchor --chr-size-file all4.3.chromSizes  --width 1500 --height 2001 -o by_ZF_chain/chr$i/CC${j2}_GF${i}_ZF${i}_GF${i2}_CC${j2}. -at chain  --no-gene-name --align-file CC:GF:$dir/CC_GF.noalign.chain,GF:CC:$dir/GF_CC.noalign.chain,ZF:GF:$dir/ZF_GF.noalign.chain,GF:ZF:$dir/GF_ZF.noalign.chain,ZF:CC:$dir/ZF_CC.noalign.chain,CC:ZF:$dir/CC_ZF.noalign.chain --chr $chrs
+    gnuplot $dir/CC${j1}_GF${i}_ZF${i}_GF${i2}_CC${j2}.gp
+done
+

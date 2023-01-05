@@ -1,0 +1,53 @@
+genome_name=goldfish.arrow.renamed
+base=$genome_name.maker.output
+## fetch finish and fail jobs and contigs
+cat $base/${genome_name}_master_datastore_index.log | grep FINISHED | cut -f 1,2 | sort | uniq > contig2.success
+cut -f 1 contig2.success | sort | uniq > contig.success
+# cat $base/${genome_name}_master_datastore_index.log | grep FAILED | cut -f 1 | sort | uniq > contig.failed.a
+# cat contig.success contig.failed.a | sort | uniq -d > b
+# cat contig.failed.a b | sort | uniq -u > contig.failed
+# rm b contig.failed.a
+
+# cat
+# for f in `ls log/*`
+# do
+# done
+
+i=0
+>tmp.a
+for f in `cat ../by_2Mbp.list`
+do
+	i=`expr $i + 1`
+	cat $f | sed -n '/^>/ s/^>//p' | awk '{print $0"\t"'$i'}' >> tmp.a
+done
+sort -k1,1 tmp.a >tmp.b; mv tmp.b tmp.a
+join -j 1 -t $'\t' -v 1 tmp.a contig.success > contig.failed2
+cut -f 2 contig.failed2 | sort -k1,1n | uniq > contig.failed.i
+fail=`cut -f 2 contig.failed2 | sort -k1,1n | uniq  | head -n 1`
+for i in `cut -f 2 contig.failed2 | sort -k1,1n | uniq | tail -n +2`
+do
+  echo $i
+  fail="$fail,$i"
+done
+
+genome_name=goldfish.arrow.renamed
+base=$genome_name.maker.output
+file=r02.merge.sh
+echo '#!/bin/sh' > $file
+echo "~/program/maker1/bin/fasta_merge -d $base/${genome_name}_master_datastore_index.log -o carAur01" >> $file
+echo "~/program/maker1/bin/gff3_merge -d $base/${genome_name}_master_datastore_index.log -o carAur01.gene.gff3" >> $file
+gzip carAur01.gene.gff3
+zcat carAur01.gene.gff3.gz | perl -ne 'if (/^#\s*FASTA/) { last; } elsif (/^#/) { next; } else { my @t=split /\t/; my $feat=$t[1]; if ($feat=~m/^\s*$/) {next;} if (!exists $fh{$feat}) { open $fh{$feat}, "| gzip -c > carAur01.gene.$feat.gff3.gz" } print {$fh{$feat}} $_; }'
+
+
+## run interProScan5
+module load interproscan/5.22-61.0
+mkdir interProScan5_run1
+cd interProScan5_run1
+interproscan -t p -appl ALL -f TSV,GFF3,HTML -iprlookup --goterms --pathways --minsize 30 carAur01.all.maker.proteins.fasta carAur01.ips 200
+
+interproscan -t p -f TSV,GFF3,HTML -iprlookup --goterms --pathways --minsize 30 ../goldfish.arrow.renamed.maker.output/goldfish.arrow.renamed_datastore/63/E1/tig00214108_arrow/tig00214108_arrow.maker.proteins.fasta tig00214108_arrow.ips 200
+interproscan -t p -f TSV,GFF3,HTML -iprlookup --goterms --pathways --minsize 30 ../goldfish.arrow.renamed.maker.output/goldfish.arrow.renamed_datastore/B3/74/tig00002911_arrow/tig00002911_arrow.maker.proteins.fasta tig00002911_arrow.ips 200
+interproscan -t p -f TSV,GFF3,HTML -iprlookup --goterms --pathways --minsize 30 ../goldfish.arrow.renamed.maker.output/goldfish.arrow.renamed_datastore/81/5B/tig00214208_arrow/tig00214208_arrow.maker.proteins.fasta tig00214208_arrow.ips 200
+interproscan -t p -f TSV,GFF3,HTML -iprlookup --goterms --pathways --minsize 30 ../goldfish.arrow.renamed.maker.output/goldfish.arrow.renamed_datastore/FB/57/tig00004487_arrow/tig00004487_arrow.maker.proteins.fasta tig00004487_arrow.ips 200
+cd ..

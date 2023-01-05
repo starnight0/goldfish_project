@@ -1,0 +1,433 @@
+faToTab -keepAccSuffix -type=dna ./ens85_fish_cc_gc_gf.no_ver.rna.fasta rna.tab
+faToTab -keepAccSuffix -type=protein ./ens85_fish_cc_gc_gf.no_ver.pep.fasta pep.tab
+cat pep.tab | awk '$1~/^ENSDAR/ || $1~/^ENSAMX/' | sed 's/\.[0-9]\+\t/\t/' > a
+cat pep.tab | awk '$1~/^CAFS_Common/ || $1~/^CI[0-9]/ || $1~/tig[0-9].*arrow/' >> a
+mv a all5.pep.tab
+cat rna.tab | awk '$1~/^ENSDAR/ || $1~/^ENSAMX/' | sed 's/\.[0-9]\+\t/\t/' > a
+cat rna.tab | awk '$1~/^CAFS_Common/ || $1~/^CI[0-9]/ || $1~/tig[0-9].*arrow/' >> a
+mv a all5.rna.tab
+cat all5.pep.tab | awk '{print ">"$1; print $2}' > all5.pep.fasta
+cat all5.rna.tab | awk '{print ">"$1; print $2}' > all5.rna.fasta
+
+cat ~/data/ensembl85/bed/Astyanax_mexicanus.AstMex102.85.bed | awk -F$'\t' -v OFS=$'\t' '{$4="CF|"$4; print $0}' > a
+cat ~/data/ensembl85/bed/Danio_rerio.GRCz10.85.bed | awk -F$'\t' -v OFS=$'\t' '{$4="ZF|"$4; print $0}' >> a
+#cat ~/data/ensembl85/all.85.bed | sed -n '/\t\(ENSAMX\|ENSDAR\)/p' | sed 's/\t\(ENS..\)/\t\1|\1/' > a
+# cat ~/data/grass_carp/ng/C_idella_female_genemodels.v1.0.LG.bed >> a
+#cat ~/data/common_carp/ng/V2.0.bed >> a
+cat ~/data/common_carp/NCBI_Cyprinus_carpio/ref_common_carp_genome_top_level.rename_chr.gff3.transcript.re_id.bed  | awk -F$'\t' -v OFS=$'\t' '{$4="GC|"$4; print $0}' >> a
+cat ~/data/goldfish/11549472/sergey_canu70x/arrow/carAur03/big/carAur03.noM.gene.gff.bed | awk -F$'\t' -v OFS=$'\t' '{$4="GF|"$4; print $0}' >> a
+mv a all4.9.bed
+
+
+>all4.chromSizes
+cat ~/data/danRer10/danRer10.chrom.sizes | awk '{print "ENSDAR\t"$0}' >>all4.chromSizes
+cat ~/data/goldfish/11549472/sergey_canu70x/arrow/carAur03/carAur03.chromSizes | awk '{print "carAur\t"$0}' >>all4.chromSizes
+cat ~/data/common_carp/ng/carp.ng.chromSize  | awk '{print "CYPCAR\t"$0}' >>all4.chromSizes
+cat /home/chenz11/data/grass_carp/ng/C_idella_female_linkage_map_anchored_scaffolds.v1.fasta.chromSizes | awk '{print "CTEIDE\t"$0}' >>all4.chromSizes
+
+>all4.2.chromSizes
+cat ~/data/danRer10/danRer10.chrom.sizes | awk '{print "ENSDAR\t"$0}' >>all4.2.chromSizes
+cat ~/data/goldfish/11549472/sergey_canu70x/arrow/carAur03/carAur03.chromSizes | awk '{print "carAur\t"$0}' >>all4.2.chromSizes
+cat ~/data/common_carp/ng/carp.ng.renameLG.fasta.fai | awk '{print "CYPCAR\t"$0}' >>all4.2.chromSizes
+cat /home/chenz11/data/grass_carp/ng/C_idella_female_linkage_map_anchored_scaffolds.v1.fasta.chromSizes | awk '{print "CTEIDE\t"$0}' >>all4.2.chromSizes
+
+
+# transform UCSC chr
+cat all5.6.bed | awk -v OFS=$'\t' '{if ($4~/^ENSDAR/) { if ($1~/K/) $1="chrUn_"$1; else if ($1~/^[0-9]/) $1="chr"$1; else if ($1=="MT") $1="chrM"; } else if ($4~/^ENSAMX/) { if ($1~/^[0-9]/) $1="chr"$1; else if ($1=="MT") $1="chrM"; } print $0}' > all5.6.ucsc_chr.bed
+
+cp ~/data/goldfish/11549472/sergey_canu70x/arrow/carAur01/carAur01.ctgInfo2 ./
+cp ~/data/goldfish/11549472/sergey_canu70x/arrow/carAur01/carAur01.ctgInfo3 ./
+
+zcat all5.2.f4.join.m6.gz | awk -F$'\t' -v OFS=$'\t' '{print $1,$2,"+",$12,$3}' > all5.2.f4.join.edge
+
+cat all5.6.bed | cut -f 4 | awk -F'|' -v OFS=$'\t' '{ if ($4~/[A-z][0-9]/) {print $1"|"$2,$1"|"$3,$1"|"$4} else {print $1"|"$2,$1"|"$3,$4} }' > all5.gtp
+
+~/my_program3/src/ohnolog/czl_ohno_syn -it all5.tree -ie all5.2.f3.join.edge -ia all5.6.ucsc_chr.bed -o out11
+/home/chenz11/data_cmd/goldfish/11549472/sergey_canu70x/arrow/maker4a/phylogene/phylogene.pl out11
+
+~/my_program3/src/ohnolog/czl_ohno_syn -it all5.tree -ie all5.2.f4.join.edge -ia all5.6.ucsc_chr.bed -o out11
+cat out11.anchor  | awk -F$'\t' '$19>0' > out11.f.anchor
+
+
+cat all5.6.bed | grep 'carAur\|CYPCAR' > GF_CC.6.bed
+cat all5.2.f4.join.edge | awk '($1~/carAur/ || $1~/CYPCAR/) && ($2~/carAur/ || $2~/CYPCAR/)' > GF_CC.2.f4.join.edge
+~/my_program3/src/ohnolog/czl_ohno_syn -it GF_CC.tree -ie GF_CC.2.f4.join.edge -ia GF_CC.6.bed -o GF_CC.ohno_syn
+
+cat all5.6.bed | grep 'carAur\|ENSDAR' > GF_ZF.6.bed
+cat all5.2.f4.join.edge | grep carAur | grep ENSDAR > GF_ZF.2.f4.join.edge
+cat all5.2.f4.join.edge | awk '$1~/carAur/ && $2~/carAur/' > GF_GF.2.f4.join.edge
+cat all5.2.f4.join.edge | awk '$1~/CYPCAR/ && $2~/CYPCAR/' > CC_CC.2.f4.join.edge
+echo '(carAur:2,ENSDAR:1)' > GF_ZF.tree
+
+cat all5.6.bed | grep 'CYPCAR\|ENSDAR' > CC_ZF.6.bed
+cat all5.2.f4.join.edge | grep CYPCAR | grep ENSDAR > CC_ZF.2.f4.join.edge
+echo '(CYPCAR:2,ENSDAR:1)' > CC_ZF.tree
+
+cat all5.gtp | awk -F$'\t' -v OFS=$'\t' '$2~/[A-z0-9]/ {print $1,$2}' > a1
+cat all5.gtp | awk -F$'\t' -v OFS=$'\t' '$3~/[A-z0-9]/ {print $1,$3}' >> a1
+cat a1 | sort -k2,2 -k1,1 | uniq > a2; mv a2 a1
+zcat all5.2.f4.join.m6.gz | sort -k1,1 | awk -F$'\t' '$1!="" && $2!="" {print $1"\t"$0}' > a2
+join -t$'\t' -1 2 -2 1 a1 a2 | cut -f 2,4- | sort -k2,2 | awk '{print $2"\t"$0}' > b1
+join -t$'\t' -1 2 -2 1 a1 b1 | cut -f 2,3,5- | sort -k2,2 | awk -F$'\t' -v OFS=$'\t' '{a=$1;$1=$2;$2=a; print $0}' | gzip -c > all5.2.f4.join.g.m6.gz
+
+gunzip -c all5.2.f4.join.g.m6.gz | awk '$1~/(carAur|CYPCAR)/ && $2~/(carAur|CYPCAR)/' > GF_CC.f4.join.g.m6
+gunzip -c all5.2.f4.join.g.m6.gz | awk '$1~/(ENSDAR|CYPCAR)/ && $2~/(ENSDAR|CYPCAR)/' > CC_ZF.f4.join.g.m6
+gunzip -c all5.2.f4.join.g.m6.gz | awk '$1~/(carAur|ENSDAR)/ && $2~/(carAur|ENSDAR)/' > GF_ZF.f4.join.g.m6
+
+
+###################################
+# compute inverse distance between GF and CC
+###################################
+
+mkdir GF_CC_by_LG
+for i in `seq 1 50`
+do
+j1=`expr \( \( $i - 1 \) % 25 \) \* 2 + 1`
+j2=`expr \( \( $i - 1 \) % 25 \) \* 2 + 2`
+for j in $j1 $j2
+do
+    dir=GF_CC_by_LG/GF_LG$i/CC_LG$j
+    echo $dir
+    mkdir -p $dir
+    cat GF_CC.6.bed | awk -F$'\t' '$1~/LG'$i'$/ && $4~/carAur/ || $1~/LG'$j'$/ && $4~/CYPCAR/' > $dir/anchor.bed
+    cat $dir/anchor.bed | cut -f 4 | cut -d'|' -f 1,3 | sort -k1,1 > a1
+    cat GF_CC.2.f4.join.edge | awk '{print $1"\t"$0}' | sort -k1,1 > a2
+    join -t $'\t' -j 1 a1 a2 | cut -f 2- | awk '{print $2"\t"$0}' | sort -k1,1 > a3
+    join -t $'\t' -j 1 a1 a3 | cut -f 2- > $dir/f4.join.edge
+    ~/my_program3/src/ohnolog/czl_ohno_syn -it GF_CC.tree -ie $dir/f4.join.edge -ia $dir/anchor.bed -o $dir/ohno_syn_out
+done
+done
+rm a1 a2 a3
+
+###################################
+# compute inverse distance between GF and ZF
+###################################
+
+m6_file=all5.2.f4.join.g.m6.gz
+zcat $m6_file | sort -k1,1 > a
+anchor_file=out11.anchor
+mkdir GF_ZF_by_LG
+for i in `seq 1 50`
+do
+for j in `seq 1 25`
+do 
+#    j=`expr \( $i - 1 \) % 25 + 1`
+    dir=GF_ZF_by_LG/GF_LG$i/ZF_chr$j
+    echo $dir
+    if ! [ -d $dir ]; then mkdir -p $dir; fi
+    cat GF_ZF.6.bed | awk -F$'\t' '$1~/LG'$i'$/ && $4~/carAur/ || $1~/^(chr|)'$j'$/ && $4~/ENSDAR/' > $dir/anchor.bed
+    cat $dir/anchor.bed | cut -f 4 | cut -d'|' -f 1,4 | sort -k1,1 > a1
+    cat GF_GF.2.f4.join.edge GF_ZF.2.f4.join.edge | awk '{print $1"\t"$0}' | sort -k1,1 > a2
+    join -t $'\t' -j 1 a1 a2 | cut -f 2- | awk '{print $2"\t"$0}' | sort -k1,1 > a3
+    join -t $'\t' -j 1 a1 a3 | cut -f 2- > $dir/f4.join.edge
+    ~/my_program3/src/ohnolog/czl_ohno_syn -it GF_ZF.tree -ie $dir/f4.join.edge -ia $dir/anchor.bed -o $dir/ohno_syn_out
+
+    cat $anchor_file | awk '$1~/carAur/ && $2~/LG'$i'(|M|F|B)$/ || $1~/ENSDAR/ && $2~/(chr'$j')$/' > $dir/anchor
+    cat $anchor_file | awk -F$'\t' '$1~/carAur/ && $2~/LG'$i'(|M|F|B)$/ {print "carAur|"$9} $1~/ENSDAR/ && $2~/chr'$j'$/ {print "ENSDAR|"$9}' | sort | uniq > $dir/sp_gene
+    cat all4.2.chromSizes | awk -F$'\t' -v OFS=$'\t' '$1~/carAur/ && $2~/LG'$i'(|M|F|B)$/ {print $0} $1~/ENSDAR/ && $2~/chr'$j'$/ {print $0}' | cut -f 1-3 > $dir/chromSizes
+    join -t$'\t' -j1 $dir/sp_gene a | sort -k2,2 > a1
+    join -t$'\t' -1 1 -2 2 $dir/sp_gene a1 | awk -F$'\t' -v OFS=$'\t' '{a=$1;$1=$2;$2=a;print $0}' | sort -k1,1 -k12,12gr > $dir/align.m6
+    cat ZF_GF.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '$3~/^chr'$j'$/ && ($8~/^LG'$i'(|M|F|B)$/ || $8~/^LG'$i2'(|M|F|B)$/) {print $0"\n"}' > $dir/ZF_GF.noalign.chain
+    cat GF_ZF.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '$8~/^chr'$j'$/ && ($3~/^LG'$i'(|M|F|B)$/ || $3~/^LG'$i2'(|M|F|B)$/) {print $0"\n"}' > $dir/GF_ZF.noalign.chain
+
+    chrs="ENSDAR,chr$j|carAur,LG$i:carAur,LG${i}M:carAur,LG${i}F:carAur,LG${i}B"
+    perl  ~/my_program3/src/utility/czl_chain_to_2d.pl -an $dir/anchor -al $dir/align.m6 --chr-size-file $dir/chromSizes -o $dir/2d. --chr ENSDAR:chr$i,carAur:LG$i --height 800 --width 400 --no-gene-name --chr $chrs --rwidth 4:10:4:4:40
+    gnuplot $dir/2d.gp
+
+    perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an out11.anchor --chr-size-file all4.2.chromSizes  --width 400 --height 800 -o $dir/chain.2d. -at chain  --no-gene-name --align-file ENSDAR:carAur:$dir/ZF_GF.noalign.chain,carAur:ENSDAR:$dir/GF_ZF.noalign.chain --chr $chrs --rwidth 4:10:4:4:40
+    gnuplot $dir/chain.2d.gp
+done
+done
+rm a1 a2 a3
+
+###################################
+# compute inverse distance between CC and ZF
+###################################
+
+m6_file=all5.2.f4.join.g.m6.gz
+zcat $m6_file | sort -k1,1 > a
+anchor_file=out11.anchor
+mkdir CC_ZF_by_LG
+for i in `seq 1 50`
+do
+#    j=`expr \( $i + 1 \) / 2`
+for j in `seq 1 25`
+do
+    dir=CC_ZF_by_LG/CC_LG$i/ZF_chr$j
+    echo $dir
+    if ! [ -d $dir ]; then mkdir -p $dir; fi
+    cat CC_ZF.6.bed | awk -F$'\t' '$1~/LG'$i'$/ && $4~/CYPCAR/ || $1~/^(chr|)'$j'$/ && $4~/ENSDAR/' > $dir/anchor.bed
+    cat $dir/anchor.bed | cut -f 4 | cut -d'|' -f 1,4 | sort -k1,1 > a1
+    cat CC_CC.2.f4.join.edge CC_ZF.2.f4.join.edge | awk '{print $1"\t"$0}' | sort -k1,1 > a2
+    join -t $'\t' -j 1 a1 a2 | cut -f 2- | awk '{print $2"\t"$0}' | sort -k1,1 > a3
+    join -t $'\t' -j 1 a1 a3 | cut -f 2- > $dir/f4.join.edge
+    ~/my_program3/src/ohnolog/czl_ohno_syn -it CC_ZF.tree -ie $dir/f4.join.edge -ia $dir/anchor.bed -o $dir/ohno_syn_out
+
+    cat $anchor_file | awk '$1~/CYPCAR/ && $2~/LG'$i'(|M|F|B)$/ || $1~/ENSDAR/ && $2~/(chr'$j')$/' > $dir/anchor
+    cat $anchor_file | awk -F$'\t' '$1~/CYPCAR/ && $2~/LG'$i'(|M|F|B)$/ {print "CYPCAR|"$9} $1~/ENSDAR/ && $2~/chr'$j'$/ {print "ENSDAR|"$9}' | sort | uniq > $dir/sp_gene
+    cat all4.2.chromSizes | awk -F$'\t' -v OFS=$'\t' '$1~/CYPCAR/ && $2~/LG'$i'(|M|F|B)$/ {print $0} $1~/ENSDAR/ && $2~/chr'$j'$/ {print $0}' | cut -f 1-3 > $dir/chromSizes
+    join -t$'\t' -j1 $dir/sp_gene a | sort -k2,2 > a1
+    join -t$'\t' -1 1 -2 2 $dir/sp_gene a1 | awk -F$'\t' -v OFS=$'\t' '{a=$1;$1=$2;$2=a;print $0}' | sort -k1,1 -k12,12gr > $dir/align.m6
+    cat ZF_CC.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '$3~/^chr'$j'$/ && ($8~/^LG'$i'(|M|F|B)$/ || $8~/^LG'$i2'(|M|F|B)$/) {print $0"\n"}' > $dir/ZF_CC.noalign.chain
+    cat CC_ZF.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '$8~/^chr'$j'$/ && ($3~/^LG'$i'(|M|F|B)$/ || $3~/^LG'$i2'(|M|F|B)$/) {print $0"\n"}' > $dir/CC_ZF.noalign.chain
+
+    chrs="ENSDAR,chr$j|CYPCAR,LG$i:CYPCAR,LG${i}M:CYPCAR,LG${i}F:CYPCAR,LG${i}B"
+    perl  ~/my_program3/src/utility/czl_chain_to_2d.pl -an $dir/anchor -al $dir/align.m6 --chr-size-file $dir/chromSizes -o $dir/2d. --chr ENSDAR:chr$i,CYPCAR:LG$i --height 800 --width 400 --no-gene-name --chr $chrs --rwidth 4:10:4:4:40
+    gnuplot $dir/2d.gp
+
+    perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an out11.anchor --chr-size-file all4.2.chromSizes  --width 400 --height 800 -o $dir/chain.2d. -at chain  --no-gene-name --align-file ENSDAR:CYPCAR:$dir/ZF_CC.noalign.chain,CYPCAR:ENSDAR:$dir/CC_ZF.noalign.chain --chr $chrs --rwidth 4:10:4:4:40
+    gnuplot $dir/chain.2d.gp
+done
+
+done
+rm a1 a2 a3
+
+
+###############################
+# plot 2D graph
+###############################
+
+m6_file=all5.2.f4.join.g.m6.gz
+zcat $m6_file | sort -k1,1 > a
+anchor_file=out11.anchor
+mkdir by_ZF_chr
+for i in `seq 1 25`
+do
+    i2=`expr $i + 25`;
+    j1=`expr $i \* 2 - 1`;
+    j2=`expr $i \* 2`;
+    dir=by_ZF_chr/chr$i;
+    echo $dir
+    if ! [ -d $dir ]; then mkdir -p $dir; fi
+
+    cat GF_ZF.6.bed | awk -F$'\t' '($1~/LG'$i'(|M|F|B)$/ || $1~/LG'$i2'(|M|F|B)$/) && $4~/carAur/ || $1~/^(chr|)'$i'$/ && $4~/ENSDAR/' > $dir/anchor.bed
+    cat $dir/anchor.bed | cut -f 4 | cut -d'|' -f 1,4 | sort -k1,1 > a1
+    cat GF_GF.2.f4.join.edge GF_ZF.2.f4.join.edge | awk '{print $1"\t"$0}' | sort -k1,1 > a2
+    join -t $'\t' -j 1 a1 a2 | cut -f 2- | awk '{print $2"\t"$0}' | sort -k1,1 > a3
+    join -t $'\t' -j 1 a1 a3 | cut -f 2- > $dir/f4.join.edge
+
+    ~/my_program3/src/ohnolog/czl_ohno_syn -it GF_ZF.tree -ie $dir/f4.join.edge -ia $dir/anchor.bed -o $dir/ohno_syn_out
+
+    cat $anchor_file | awk '$1~/carAur/ && $2~/(LG'$i'|LG'$i2')$/ || $1~/CYPCAR/ && $2~/(LG'$j1'|LG'$j2')$/ || $1~/ENSDAR/ && $2~/(chr'$i')$/' > $dir/chr$i.anchor
+    cat $anchor_file | awk -F$'\t' '$1~/carAur/ && $2~/(LG'$i'|LG'$i2')$/ {print "carAur|"$9} $1~/CYPCAR/ && $2~/(LG'$j1'|LG'$j2')$/ {print "CYPCAR|"$9;} $1~/ENSDAR/ && $2~/chr'$i'$/ {print "ENSDAR|"$9}' | sort | uniq > $dir/chr$i.sp_gene
+    cat all4.2.chromSizes | awk -F$'\t' -v OFS=$'\t' '$1~/carAur/ && $2~/(LG'$i'|LG'$i2')$/ {print $0} $1~/CYPCAR/ && $2~/(LG'$j1'|LG'$j2')$/ {print $0} $1~/ENSDAR/ && $2~/chr'$i'$/ {print $0}' | cut -f 1-3 > $dir/chr$i.chromSizes
+    join -t$'\t' -j1 $dir/chr$i.sp_gene a | sort -k2,2 > a1
+    join -t$'\t' -1 1 -2 2 $dir/chr$i.sp_gene a1 | awk -F$'\t' -v OFS=$'\t' '{a=$1;$1=$2;$2=a;print $0}' | sort -k1,1 -k12,12gr > $dir/chr$i.m6
+
+
+    perl  ~/my_program3/src/utility/czl_chain_to_2d.pl -an $dir/chr$i.anchor -al $dir/chr$i.m6 --chr-size-file $dir/chr$i.chromSizes -o $dir/chr$i.2d.1. --chr CYPCAR:LG$j1,carAur:LG$i,ENSDAR:chr$i,carAur:LG$i2,CYPCAR:LG$j2 --height 1600 --width 1600 --rwidth 1:2:2:1:8 --no-gene-name;
+    gnuplot $dir/chr$i.2d.1.gp
+    perl  ~/my_program3/src/utility/czl_chain_to_2d.pl -an $dir/chr$i.anchor -al $dir/chr$i.m6 --chr-size-file $dir/chr$i.chromSizes -o $dir/chr$i.2d.2. --chr CYPCAR:LG$j2,carAur:LG$i,ENSDAR:chr$i,carAur:LG$i2,CYPCAR:LG$j1 --height 1600 --width 1600 --rwidth 1:2:2:1:8 --no-gene-name;
+    gnuplot $dir/chr$i.2d.2.gp
+done
+for i in `seq 1 25`
+do
+    i2=`expr $i + 25`;
+    j1=`expr $i \* 2 - 1`;
+    j2=`expr $i \* 2`;
+    dir=by_ZF_chr/chr$i;
+    echo $dir
+    cat ZF_GF.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '$3~/^chr'$i'/ && ($8~/^LG'$i'(|M|F|B)$/ || $8~/^LG'$i2'(|M|F|B)$/) {print $0"\n"}' > $dir/ZF_GF.noalign.chain
+    cat GF_ZF.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '$8~/^chr'$i'/ && ($3~/^LG'$i'(|M|F|B)$/ || $3~/^LG'$i2'(|M|F|B)$/) {print $0"\n"}' > $dir/GF_ZF.noalign.chain
+    cat ZF_CC.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '$3~/^chr'$i'/ && ($8~/^LG'$j1'$/ || $8~/^LG'$j2'$/) {print $0"\n"}' > $dir/ZF_CC.noalign.chain
+    cat CC_ZF.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '$8~/^chr'$i'/ && ($3~/^LG'$j1'$/ || $3~/^LG'$j2'$/) {print $0"\n"}' > $dir/CC_ZF.noalign.chain
+    cat CC_GF.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '($3~/^LG'$j1'$/ || $3~/^LG'$j2'$/) && ($8~/^LG'$i'(|M|F|B)$/ || $8~/^LG'$i2'(|M|F|B)$/) {print $0"\n"}' > $dir/CC_GF.noalign.chain
+    cat GF_CC.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '($8~/^LG'$j1'$/ || $8~/^LG'$j2'$/) && ($3~/^LG'$i'(|M|F|B)$/ || $3~/^LG'$i2'(|M|F|B)$/) {print $0"\n"}' > $dir/GF_CC.noalign.chain
+done
+
+# CC_GF_ZF_GF_CC
+mkdir -p by_ZF_chr_2
+for i in `seq 1 25`
+do
+    i2=`expr $i + 25`;
+    j1=`expr $i \* 2 - 1`;
+    j2=`expr $i \* 2`;
+    dir=by_ZF_chr_2/chr$i
+    dir1=by_ZF_chr/chr$i;
+    if ! [ -d $dir ]; then mkdir -p $dir; fi
+    echo CC${j1}_GF${i}_ZF${i}_GF${i2}_CC${j2}
+    chrs="CYPCAR,LG$j1|carAur,LG$i:carAur,LG${i}M:carAur,LG${i}F:carAur,LG${i}B|ENSDAR,chr$i|carAur,LG$i2:carAur,LG${i2}M:carAur,LG${i2}F:carAur,LG${i2}B|CYPCAR,LG$j2"
+    perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an out11.anchor --chr-size-file all4.2.chromSizes  --width 1000 --height 1000 -o by_ZF_chr_2/chr$i/CC${j1}_GF${i}_ZF${i}_GF${i2}_CC${j2}. -at chain  --no-gene-name --align-file CYPCAR:carAur:$dir1/CC_GF.noalign.chain,carAur:CYPCAR:$dir1/GF_CC.noalign.chain,ENSDAR:carAur:$dir1/ZF_GF.noalign.chain,carAur:ENSDAR:$dir1/GF_ZF.noalign.chain,ENSDAR:CYPCAR:$dir1/ZF_CC.noalign.chain,CYPCAR:ENSDAR:$dir1/CC_ZF.noalign.chain --chr $chrs
+    gnuplot by_ZF_chr_2/chr$i/CC${j1}_GF${i}_ZF${i}_GF${i2}_CC${j2}.gp
+    j2=`expr $i \* 2 - 1`;
+    j1=`expr $i \* 2`;
+    echo CC${j1}_GF${i}_ZF${i}_GF${i2}_CC${j2}
+    chrs="CYPCAR,LG$j1|carAur,LG$i:carAur,LG${i}M:carAur,LG${i}F:carAur,LG${i}B|ENSDAR,chr$i|carAur,LG$i2:carAur,LG${i2}M:carAur,LG${i2}F:carAur,LG${i2}B|CYPCAR,LG$j2"
+    perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an out11.anchor --chr-size-file all4.2.chromSizes  --width 1000 --height 1000 -o by_ZF_chr_2/chr$i/CC${j1}_GF${i}_ZF${i}_GF${i2}_CC${j2}. -at chain  --no-gene-name --align-file CYPCAR:carAur:$dir1/CC_GF.noalign.chain,carAur:CYPCAR:$dir1/GF_CC.noalign.chain,ENSDAR:carAur:$dir1/ZF_GF.noalign.chain,carAur:ENSDAR:$dir1/GF_ZF.noalign.chain,ENSDAR:CYPCAR:$dir1/ZF_CC.noalign.chain,CYPCAR:ENSDAR:$dir1/CC_ZF.noalign.chain --chr $chrs
+    gnuplot by_ZF_chr_2/chr$i/CC${j1}_GF${i}_ZF${i}_GF${i2}_CC${j2}.gp
+done
+
+# CC_ZF_CC
+for i in `seq 1 25`
+do
+    i2=`expr $i + 25`;
+    j1=`expr $i \* 2 - 1`;
+    j2=`expr $i \* 2`;
+    dir=by_ZF_chr_2/chr$i
+    dir1=by_ZF_chr/chr$i;
+    if ! [ -d $dir ]; then mkdir -p $dir; fi
+    echo CC${j1}_ZF${i}_CC${j2}
+    chrs="CYPCAR,LG$j1|ENSDAR,chr$i|CYPCAR,LG$j2"
+    perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an out11.anchor --chr-size-file all4.2.chromSizes  --width 1000 --height 1000 -o by_ZF_chr_2/chr$i/CC${j1}_ZF${i}_CC${j2}. -at chain  --no-gene-name --align-file ENSDAR:CYPCAR:$dir1/ZF_CC.noalign.chain,CYPCAR:ENSDAR:$dir1/CC_ZF.noalign.chain --chr $chrs
+    gnuplot by_ZF_chr_2/chr$i/CC${j1}_ZF${i}_CC${j2}.gp
+done
+
+# GF_ZF_GF
+for i in `seq 1 25`
+do
+    i2=`expr $i + 25`;
+    j1=`expr $i \* 2 - 1`;
+    j2=`expr $i \* 2`;
+    dir=by_ZF_chr_2/chr$i
+    dir1=by_ZF_chr/chr$i;
+    if ! [ -d $dir ]; then mkdir -p $dir; fi
+    out=GF${i}_ZF${i}_GF${i2}
+    echo $out
+    chrs="carAur,LG$i:carAur,LG${i}F:carAur,LG${i}M:carAur,LG${i}B|ENSDAR,chr$i|carAur,LG$i2:carAur,LG${i2}F:carAur,LG${i2}M:carAur,LG${i2}B"
+    perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an out11.anchor --chr-size-file all4.2.chromSizes  --width 400 --height 800 -o $dir/$out. -at chain  --no-gene-name --align-file ENSDAR:carAur:$dir1/ZF_GF.noalign.chain,carAur:ENSDAR:$dir1/GF_ZF.noalign.chain --chr $chrs --rwidth 4:10:4:4:40
+    gnuplot $dir/$out.gp
+done
+
+# star
+for i in `seq 1 25`
+do
+    i2=`expr $i + 25`;
+    j1=`expr $i \* 2 - 1`;
+    j2=`expr $i \* 2`;
+    dir=by_ZF_chr_2/chr$i
+    dir1=by_ZF_chr/chr$i;
+    if ! [ -d $dir ]; then mkdir -p $dir; fi
+    out=star.CC${j1}_GF${i}_ZF${i}_GF${i2}_CC${j2}
+    echo $out
+    chrs="carAur,LG$i:carAur,LG${i}M:carAur,LG${i}F:carAur,LG${i}B:CYPCAR,LG$j1|ENSDAR,chr$i|carAur,LG$i2:carAur,LG${i2}M:carAur,LG${i2}F:carAur,LG${i2}B:CYPCAR,LG$j2"
+    perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an out11.anchor --chr-size-file all4.2.chromSizes  --width 1000 --height 1000 -o by_ZF_chr_2/chr$i/$out. -at chain  --no-gene-name --align-file CYPCAR:carAur:$dir1/CC_GF.noalign.chain,carAur:CYPCAR:$dir1/GF_CC.noalign.chain,ENSDAR:carAur:$dir1/ZF_GF.noalign.chain,carAur:ENSDAR:$dir1/GF_ZF.noalign.chain,ENSDAR:CYPCAR:$dir1/ZF_CC.noalign.chain,CYPCAR:ENSDAR:$dir1/CC_ZF.noalign.chain --chr $chrs
+    gnuplot by_ZF_chr_2/chr$i/$out.gp
+    j2=`expr $i \* 2 - 1`;
+    j1=`expr $i \* 2`;
+    out=star.CC${j1}_GF${i}_ZF${i}_GF${i2}_CC${j2}
+    echo $out
+    chrs="carAur,LG$i:carAur,LG${i}M:carAur,LG${i}F:carAur,LG${i}B:CYPCAR,LG$j1|ENSDAR,chr$i|carAur,LG$i2:carAur,LG${i2}M:carAur,LG${i2}F:carAur,LG${i2}B:CYPCAR,LG$j2"
+    perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an out11.anchor --chr-size-file all4.2.chromSizes  --width 1000 --height 1000 -o by_ZF_chr_2/chr$i/$out. -at chain  --no-gene-name --align-file CYPCAR:carAur:$dir1/CC_GF.noalign.chain,carAur:CYPCAR:$dir1/GF_CC.noalign.chain,ENSDAR:carAur:$dir1/ZF_GF.noalign.chain,carAur:ENSDAR:$dir1/GF_ZF.noalign.chain,ENSDAR:CYPCAR:$dir1/ZF_CC.noalign.chain,CYPCAR:ENSDAR:$dir1/CC_ZF.noalign.chain --chr $chrs
+    gnuplot by_ZF_chr_2/chr$i/$out.gp
+done
+
+# star5
+w=600
+h=800
+for i in `seq 1 25`
+do
+    i2=`expr $i + 25`;
+    j1=`expr $i \* 2 - 1`;
+    j2=`expr $i \* 2`;
+    dir=by_ZF_chr_2/chr$i
+    dir1=by_ZF_chr/chr$i;
+    if ! [ -d $dir ]; then mkdir -p $dir; fi
+    out=star5.CC${j1}_GF${i}_ZF${i}_GF${i2}_CC${j2}
+    echo $out
+    chrs="CYPCAR,LG$j1|carAur,LG$i:carAur,LG${i}M:carAur,LG${i}F:carAur,LG${i}B:CYPCAR,LG$j1|ENSDAR,chr$i|carAur,LG$i2:carAur,LG${i2}M:carAur,LG${i2}F:carAur,LG${i2}B:CYPCAR,LG$j2|CYPCAR,LG$j2"
+    perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an out11.anchor --chr-size-file all4.2.chromSizes  --width $w --height $h -o by_ZF_chr_2/chr$i/$out. -at chain  --no-gene-name --align-file CYPCAR:carAur:$dir1/CC_GF.noalign.chain,carAur:CYPCAR:$dir1/GF_CC.noalign.chain,ENSDAR:carAur:$dir1/ZF_GF.noalign.chain,carAur:ENSDAR:$dir1/GF_ZF.noalign.chain,ENSDAR:CYPCAR:$dir1/ZF_CC.noalign.chain,CYPCAR:ENSDAR:$dir1/CC_ZF.noalign.chain --chr $chrs --rwidth 4:10:4:4:40
+    gnuplot by_ZF_chr_2/chr$i/$out.gp
+    j2=`expr $i \* 2 - 1`;
+    j1=`expr $i \* 2`;
+    out=star5.CC${j1}_GF${i}_ZF${i}_GF${i2}_CC${j2}
+    echo $out
+    chrs="CYPCAR,LG$j1|carAur,LG$i:carAur,LG${i}M:carAur,LG${i}F:carAur,LG${i}B:CYPCAR,LG$j1|ENSDAR,chr$i|carAur,LG$i2:carAur,LG${i2}M:carAur,LG${i2}F:carAur,LG${i2}B:CYPCAR,LG$j2|CYPCAR,LG$j2"
+    perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an out11.anchor --chr-size-file all4.2.chromSizes  --width $w --height $h -o by_ZF_chr_2/chr$i/$out. -at chain  --no-gene-name --align-file CYPCAR:carAur:$dir1/CC_GF.noalign.chain,carAur:CYPCAR:$dir1/GF_CC.noalign.chain,ENSDAR:carAur:$dir1/ZF_GF.noalign.chain,carAur:ENSDAR:$dir1/GF_ZF.noalign.chain,ENSDAR:CYPCAR:$dir1/ZF_CC.noalign.chain,CYPCAR:ENSDAR:$dir1/CC_ZF.noalign.chain --chr $chrs --rwidth 4:10:4:4:40
+    gnuplot by_ZF_chr_2/chr$i/$out.gp
+done
+
+
+#######################
+# GF self
+#######################
+m6_file=all5.2.f4.join.g.m6.gz
+zcat $m6_file | sort -k1,1 > a
+anchor_file=out11.anchor
+mkdir by_GF_pair
+for i in `seq 1 25`
+do
+    i2=`expr $i + 25`;
+#    j1=`expr $i \* 2 - 1`;
+#    j2=`expr $i \* 2`;
+    dir=by_GF_pair/chr$i;
+    echo $dir
+    if ! [ -d $dir ]; then mkdir -p $dir; fi
+    cat $anchor_file | awk '$1~/carAur/ && $2~/(LG'$i'|LG'$i2')$/' > $dir/chr$i.anchor
+    cat $anchor_file | awk -F$'\t' '$1~/carAur/ && $2~/(LG'$i'|LG'$i2')$/ {print "carAur|"$9}' | sort | uniq > $dir/chr$i.sp_gene
+    cat all4.2.chromSizes | awk -F$'\t' -v OFS=$'\t' '$1~/carAur/ && $2~/(LG'$i'|LG'$i2')$/ {print $0}' | cut -f 1-3 > $dir/chr$i.chromSizes
+    join -t$'\t' -j1 $dir/chr$i.sp_gene a | sort -k2,2 > a1
+    join -t$'\t' -1 1 -2 2 $dir/chr$i.sp_gene a1 | awk -F$'\t' -v OFS=$'\t' '{a=$1;$1=$2;$2=a;print $0}' | sort -k1,1 -k12,12gr > $dir/chr$i.m6
+
+    cat GF_GF.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '($3~/^LG'$i'(|M|F|B)$/ && $8~/^LG'$i2'(|M|F|B)$/) || ($3~/^LG'$i2'(|M|F|B)$/ && $8~/^LG'$i'(|M|F|B)$/) {print $0"\n"}' > $dir/GF_GF.noalign.chain
+
+    chrs="carAur,LG$i:carAur,LG${i}F:carAur,LG${i}M:carAur,LG${i}B|carAur,LG$i2:carAur,LG${i2}F:carAur,LG${i2}M:carAur,LG${i2}B"
+    perl  ~/my_program3/src/utility/czl_chain_to_2d.pl -an $dir/chr$i.anchor -al $dir/chr$i.m6 --chr-size-file $dir/chr$i.chromSizes -o $dir/chr$i.2d. --height 800 --width 400 --no-gene-name --chr $chrs --rwidth 4,10,4,4,40;
+    gnuplot $dir/chr$i.2d.gp
+
+    perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an $dir/chr$i.anchor --chr-size-file $dir/chr$i.chromSizes --width 400 --height 800 -o $dir/chain.2d. -at chain  --no-gene-name --align-file carAur:carAur:$dir/GF_GF.noalign.chain --chr $chrs --rwidth 4,10,4,4,40
+    gnuplot $dir/chain.2d.gp
+done
+
+#######################
+# CC self
+#######################
+m6_file=all5.2.f4.join.g.m6.gz
+zcat $m6_file | sort -k1,1 > a
+anchor_file=out11.anchor
+mkdir by_CC_pair
+for i in `seq 1 25`
+do
+#    i2=`expr $i + 25`;
+    j1=`expr $i \* 2 - 1`;
+    j2=`expr $i \* 2`;
+    dir=by_CC_pair/chr$i;
+    echo $dir
+    if ! [ -d $dir ]; then mkdir -p $dir; fi
+    cat $anchor_file | awk '$1~/CYPCAR/ && $2~/(LG'$j1'|LG'$j2')$/' > $dir/chr$i.anchor
+    cat $anchor_file | awk -F$'\t' '$1~/CYPCAR/ && $2~/(LG'$j1'|LG'$j2')$/ {print "CYPCAR|"$9}' | sort | uniq > $dir/chr$i.sp_gene
+    cat all4.2.chromSizes | awk -F$'\t' -v OFS=$'\t' '$1~/CYPCAR/ && $2~/(LG'$j1'|LG'$j2')$/ {print $0}' | cut -f 1-3 > $dir/chr$i.chromSizes
+    join -t$'\t' -j1 $dir/chr$i.sp_gene a | sort -k2,2 > a1
+    join -t$'\t' -1 1 -2 2 $dir/chr$i.sp_gene a1 | awk -F$'\t' -v OFS=$'\t' '{a=$1;$1=$2;$2=a;print $0}' | sort -k1,1 -k12,12gr > $dir/chr$i.m6
+
+    cat CC_CC.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain | awk '($3~/^LG'$j1'(|M|F|B)$/ && $8~/^LG'$j2'(|M|F|B)$/) || ($3~/^LG'$j2'(|M|F|B)$/ && $8~/^LG'$j1'(|M|F|B)$/) {print $0"\n"}' > $dir/CC_CC.noalign.chain
+
+    chrs="CYPCAR,LG$j1:CYPCAR,LG${j1}F:CYPCAR,LG${j1}M:CYPCAR,LG${j1}B|CYPCAR,LG$j2:CYPCAR,LG${j2}F:CYPCAR,LG${j2}M:CYPCAR,LG${j2}B"
+    perl  ~/my_program3/src/utility/czl_chain_to_2d.pl -an $dir/chr$i.anchor -al $dir/chr$i.m6 --chr-size-file $dir/chr$i.chromSizes -o $dir/chr$i.2d. --height 800 --width 400 --no-gene-name --chr $chrs --rwidth 4,10,4,4,40;
+    gnuplot $dir/chr$i.2d.gp
+
+    perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an $dir/chr$i.anchor --chr-size-file $dir/chr$i.chromSizes --width 400 --height 800 -o $dir/chain.2d. -at chain  --no-gene-name --align-file CYPCAR:CYPCAR:$dir/CC_CC.noalign.chain --chr $chrs --rwidth 4,10,4,4,40
+    gnuplot $dir/chain.2d.gp
+done
+
+
+
+
+##################################
+#  for czl_chain_to_2d.pl chr plot test
+##################################
+cat out11.anchor | awk '$1~/ENSDAR/ || $1~/carAur/' > out11.GF_ZF.anchor
+gunzip -c all5.2.f4.join.g.m6.gz | awk '($1~/ENSDAR/ || $1~/carAur/) && ($2~/ENSDAR/ || $2~/carAur/)' > GF_ZF.2.f4.join.g.m6
+cat all4.2.chromSizes | grep '\(carAur\|ENSDAR\)' | grep -v 'chrUn' | grep -v 'chrM' > GF_ZF.noMU.chromSizes 
+~/my_program3/src/utility/czl_chr_plot.pl -an out11.GF_ZF.anchor -al GF_ZF.2.f4.join.g.m6 --chr-size-file GF_ZF.noMU.chromSizes --species ENSDAR,carAur --min-block-length 5 --fig-width 3000 --fig-height 800 -o GF_ZF.chr_plot.
+gnuplot GF_ZF.chr_plot.gp
+
+cat out11.anchor | awk '$1~/ENSDAR/ || $1~/CYPCAR/' > out11.CC_ZF.anchor
+cat all4.2.chromSizes | grep '\(CYPCAR\|ENSDAR\)' | grep -v 'chrUn' | grep -v 'chrM' > CC_ZF.noMU.chromSizes 
+
+cat out11.anchor | awk '$1~/carAur/ || $1~/CYPCAR/' > out11.GF_CC.anchor
+cat all4.2.chromSizes | grep '\(CYPCAR\|carAur\)' | grep -v 'chrUn' | grep -v 'chrM' > GF_CC.noMU.chromSizes 
+
+
+~/my_program3/src/utility/czl_chain_to_2d.pl -an out11.GF_CC.anchor --chr-size-file GF_CC.noMU.chromSizes  --width 5000 --height 1000 -o GF_CC.chr_plot. --align-file CYPCAR:carAur:CC_GF.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain,carAur:CYPCAR:GF_CC.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain -at chain --ref-sp carAur --ref-chr LG1 --chr-plot --chr ALL -ccf GF_CC.rbh.chr_cluster.txt
+gnuplot GF_CC.chr_plot.gp
+
+~/my_program3/src/utility/czl_chain_to_2d.pl -an out11.GF_ZF.anchor --chr-size-file GF_ZF.noMU.chromSizes  --width 5000 --height 1000 -o GF_ZF.chr_plot. --align-file ENSDAR:carAur:ZF_GF.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain,carAur:ENSDAR:GF_ZF.all.tMinSize1000.qMinSize1000.minScore50000.noalign.chain -at chain --ref-sp ENSDAR --chr-plot --chr ALL -ccf ZF_GF.net.cluster.txt
+
+##################################
+#  for czl_chain_to_2d.pl 2d plot test
+##################################
+~/my_program3/src/utility/czl_chain_to_2d.pl -an out11.GF_CC.anchor -al all5.2.f4.join.g.m6.gz --chr-size-file GF_CC.noMU.chromSizes  --width 600 --height 1000 -o GF_CC_by_LG/GF_LG1/CC_LG1/plot_2d. -at anchor  --ref-sp carAur -ccf GF_CC.rbh.chr_cluster.txt --no-gene-name --chr carAur:LG1,CYPCAR:LG1
+
+perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an out11.GF_CC.anchor -al GF_CC.f4.join.g.m6 --chr-size-file GF_CC.noMU.chromSizes  --width 2000 --height 1000 -o GF_CC_by_LG/GF_LG1/CC_LG1/plot_2d. -at chain  --ref-sp carAur -ccf GF_CC.rbh.chr_cluster.txt --no-gene-name --chr carAur:LG1,CYPCAR:LG1 --align-file CYPCAR:carAur:GF_CC_by_LG/GF_LG1/CC_LG1/CC_GF.noalign.chain,carAur:CYPCAR:GF_CC_by_LG/GF_LG1/CC_LG1/GF_CC.noalign.chain
+
+perl ~/my_program3/src/utility/czl_chain_to_2d.pl -an out11.anchor -al all5.2.f4.join.g.m6 --chr-size-file GF_CC.noMU.chromSizes  --width 2000 --height 1000 -o GF_CC_by_LG/GF_LG1/CC_LG1/plot_2d. -at chain  --ref-sp carAur -ccf GF_CC.rbh.chr_cluster.txt --no-gene-name --chr carAur:LG1,CYPCAR:LG1 --align-file CYPCAR:carAur:GF_CC_by_LG/GF_LG1/CC_LG1/CC_GF.noalign.chain,carAur:CYPCAR:GF_CC_by_LG/GF_LG1/CC_LG1/GF_CC.noalign.chain

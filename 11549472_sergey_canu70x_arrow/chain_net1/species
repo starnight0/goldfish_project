@@ -1,0 +1,15 @@
+carAur	carAur	~/data/goldfish/11549472/sergey_canu70x/arrow/carAur01/carAur01.withM.sm.fa	~/data/goldfish/11549472/sergey_canu70x/arrow/carAur01/carAur01.withM.sm.fa.by_100Mbp/files	~/data/goldfish/11549472/sergey_canu70x/arrow/carAur01/carAur01.2bit
+carp_ng	CYPCAR	~/data/common_carp/ng/carp.ng.renameLG.fasta	~/data/common_carp/ng/by_chr.files	~/data/common_carp/ng/carp.ng.renameLG.2bit
+danRer10	ENSDAR	~/data/danRer10/danRer10.fa	~/data/danRer10/by_chr.list	~/data/danRer10/danRer10.2bit
+grass_carp	CTEIDE	~/data/grass_carp/ng/C_idella_female_scaffolds.v1.sm.fasta	~/data/grass_carp/ng/by_100Mbp.list	~/data/grass_carp/ng/C_idella_female_scaffolds.v1.sm.2bit
+cave_fish	ENSAMX	~/data/cave_fish/ensembl85/Astyanax_mexicanus.AstMex102.dna_sm.toplevel.fa	~/data/cave_fish/ensembl85/by_100Mbp.list	~/data/cave_fish/ensembl85/Astyanax_mexicanus.AstMex102.dna_sm.toplevel.2bit
+grass_carp_female_lg	CTEIDELG	~/data/grass_carp/ng/C_idella_female_linkage_map_anchored_scaffolds.v1.fasta	~/data/grass_carp/ng/by_100Mbp.list
+salmon	salmon	~/data/atlantic_salmon/GCF_000233375.1_ICSASG_v2/GCF_000233375.1_ICSASG_v2_genomic.short_name.fasta	~/data/atlantic_salmon/GCF_000233375.1_ICSASG_v2/by_100Mbp.list	~/data/atlantic_salmon/GCF_000233375.1_ICSASG_v2/GCF_000233375.1_ICSASG_v2_genomic.short_name.2bit
+oryLat2	oryLat2	~/data/medaka/oryLat2/oryLat2.fa	~/data/medaka/oryLat2/by_100Mbp.list	~/data/medaka/oryLat2/oryLat2.2bit
+gar	lepOcu1	~/data/spotted_gar/Lepisosteus_oculatus/Lepisosteus_oculatus.LepOcu1.dna_sm.toplevel.fa	~/data/spotted_gar/Lepisosteus_oculatus/by_100Mbp.list	~/data/spotted_gar/Lepisosteus_oculatus/Lepisosteus_oculatus.LepOcu1.dna_sm.toplevel.2bit
+hg38	hg38	~/data/human/hg38/hg38.fa	~/data/human/hg38/by_chr.list	~/data/human/hg38/hg38.2bit
+carAur03a	carAur03a	~/data/goldfish/11549472/sergey_canu70x/arrow/carAur03a/carAur03.sm.fa	~/data/goldfish/11549472/sergey_canu70x/arrow/carAur03a/by_chr.files	~/data/goldfish/11549472/sergey_canu70x/arrow/carAur03a/carAur03.2bit
+carp_ncbi	CYPCAR	~/data/common_carp/NCBI_Cyprinus_carpio/Cyprinus_carpio.sm.fa	~/data/common_carp/NCBI_Cyprinus_carpio/by_chr_softmasked.files	~/data/common_carp/NCBI_Cyprinus_carpio/Cyprinus_carpio.2bit
+grass_carp_male	CTEIDEM	~/data/grass_carp/ng/Ctenopharyngodon_idellus_male/C_idella_male_scaffolds_over500bp.v1.sm.fasta	~/data/grass_carp/ng/Ctenopharyngodon_idellus_male/C_idella_male_scaffolds_over500bp.v1.sm.fasta.by_50Mbp.files	~/data/grass_carp/ng/Ctenopharyngodon_idellus_male/C_idella_male_scaffolds_over500bp.v1.2bit
+grass_carp_female	CTEIDE	~/data/grass_carp/ng/Ctenopharyngodon_idellus_female/C_idella_female.LG.v1.sm.fasta	~/data/grass_carp/ng/Ctenopharyngodon_idellus_female/C_idella_female.LG.v1.sm.by_chr.files	~/data/grass_carp/ng/Ctenopharyngodon_idellus_female/C_idella_female.LG.v1.sm.2bit
+carAur03	carAur03	~/data/goldfish/11549472/sergey_canu70x/arrow/carAur03/carAur03.sm.fa	~/data/goldfish/11549472/sergey_canu70x/arrow/carAur03/carAur03.sm.fa.by_chr/files	~/data/goldfish/11549472/sergey_canu70x/arrow/carAur03/carAur03.2bit

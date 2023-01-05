@@ -1,0 +1,2 @@
+java -Xmx4g -XX:ParallelGCThreads=4 -jar $PICARDJARPATH/picard.jar CreateSequenceDictionary R=goldfish.arrow.fasta O=goldfish.arrow.fasta.dict
+hgFakeAgp -minContigGap=1 goldfish.arrow.renamed.fasta goldfish.arrow.renamed.agp

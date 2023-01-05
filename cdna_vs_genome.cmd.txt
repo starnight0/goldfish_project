@@ -1,0 +1,188 @@
+GF_wd=~/data/goldfish/11549472/sergey_canu70x/arrow/carAur03
+wd=~/data/goldfish/11549472/sergey_canu70x/arrow/carAur03
+asm=carAur03
+name=carAur03
+
+GF_genome=$GF_wd/$name.sm.fa
+GF_genome_by_chr=$GF_wd/$name.sm.fa.by_chr/files1_noM
+GF_cdna=$GF_wd/big/carAur03.noM.gene.maker.transcripts.fa
+GF_cdna1=$GF_wd/big/carAur03.noM.gene.maker.transcripts.fa.2M/files
+
+CC_genome=/home/chenz11/data/common_carp/NCBI_Cyprinus_carpio/Cyprinus_carpio.sm.fa
+CC_genome_by_chr=/home/chenz11/data/common_carp/NCBI_Cyprinus_carpio/by_chr.files2.noM
+CC_cdna=/home/chenz11/data/common_carp/NCBI_Cyprinus_carpio/cdna.short_name.fa
+CC_cdna1=/home/chenz11/data/common_carp/NCBI_Cyprinus_carpio/cdna.short_name.fa.2M/files
+
+GC_genome=$HOME/data/grass_carp/ng/Ctenopharyngodon_idellus_female/C_idella_female.LG.v1.sm.fasta
+GC_genome_by_chr=/home/chenz11/data/grass_carp/ng/Ctenopharyngodon_idellus_female/C_idella_female.LG.v1.sm.fasta.by_chr/files
+GC_cdna=$HOME/data/grass_carp/ng/Ctenopharyngodon_idellus_female/C_idella_female_male_genemodels.v1.cds.short_name.fa
+GC_cdna1=$HOME/data/grass_carp/ng/Ctenopharyngodon_idellus_female/C_idella_female_male_genemodels.v1.cds.short_name.fa.2M/files
+
+ZF_genome=/home/chenz11/data/zebrafish/ensembl85/Danio_rerio.GRCz10.dna_sm.toplevel.noM.fa
+ZF_genome_by_chr=/home/chenz11/data/zebrafish/ensembl85/by_chr/files.noM
+ZF_cdna=/home/chenz11/data/zebrafish/ensembl85/Danio_rerio.GRCz10.cdna.all.fa
+ZF_cdna1=/home/chenz11/data/zebrafish/ensembl85/Danio_rerio.GRCz10.cdna.all.fa.2M/files
+
+hub=~/data/datashare/fishCarAur1/carAur01
+
+blat_wd=$wd/big/blat
+if ! [ -d "$blat_wd" ]; then mkdir "$blat_wd"; fi
+
+###################################################
+#ncrna=/home/chenz11/data/zebrafish/ensembl93/Danio_rerio.GRCz11.ncdna.fa
+#pep=/home/chenz11/data/zebrafish/ensembl93/Danio_rerio.GRCz11.pep.all.fa
+
+###############################################################################
+# cdna BLAT genome
+###############################################################################
+
+for sp1 in ZF GC CC GF
+do
+for sp2 in ZF GC CC GF
+do
+	g=${sp1}_genome_by_chr
+	genome_by_chr=${!g}
+	g=${sp2}_cdna1
+	cdna1=${!g}
+
+	dir0=$blat_wd/${sp1}_genome/${sp2}_cdna/;
+	if ! [ -d "$dir0" ]; then mkdir -p "$dir0"; fi
+	job_name=r01.blat1
+	job_file=$dir0/$job_name.sh
+	if [ -f "$job_file" ]
+	then
+		echo "$job_file exists. DO NOT overwrite."
+	else
+		>$job_file;
+		n=`cat $genome_by_chr | wc -l`
+		for i in `seq 1 $n`
+		do
+			chr=`cat $genome_by_chr | head -n $i | tail -n 1 | cut -f 1`;
+			chr_fa=`cat $genome_by_chr | head -n $i | tail -n 1 | cut -f 2`;
+			dir=$blat_wd/${sp1}_genome/${sp2}_cdna/by_chr/$chr/;
+			if ! [ -d "$dir" ]; then mkdir -p "$dir"; fi
+			m=`cat $cdna1 | wc -l`
+			for j in `seq 1 $m`
+			do
+				cdna=`cat $cdna1 | head -n $j | tail -n 1 | cut -f 1`;
+				cdna_fa=`cat $cdna1 | head -n $j | tail -n 1 | cut -f 2`;
+				echo "blat  $chr_fa  $cdna_fa  $dir/$cdna.blat.psl  -stepSize=1 -t=dna -q=rna -minIdentity=70 -noHead; " >> $job_file
+			done
+		done
+	fi
+done
+done
+
+# swarm -m blat -g 4 --time=48:00:00 -f r01.blat.sh -J r01.blat --logdir=r01.blat.log/
+# cd blat;  cmd=r01.blat1; if ! [ -d "$cmd.log" ]; then mkdir $cmd.log; fi; swarm -m blat --gres=lscratch:2 -g 2 --time=24:00:00 -f $cmd.sh -J $cmd --logdir=$cmd.log/;  cd ../
+
+for sp1 in ZF GC CC GF
+do
+for sp2 in ZF GC CC GF
+do
+	dir0=$blat_wd/${sp1}_genome/${sp2}_cdna/;
+	if ! [ -f "$dir0/blat.psl" ] && ! [ -f "$dir0/blat.psl.gz" ]
+    then
+	    cat "$dir0/by_chr"/*/*.blat.psl > "$dir0/blat.psl";
+	fi
+done
+done
+
+#------------------------------------------------------------------------------
+# cdna BLAT genome filter
+#------------------------------------------------------------------------------
+for sp1 in ZF GC CC GF
+do
+for sp2 in ZF GC CC GF
+do
+	dir0=$blat_wd/${sp1}_genome/${sp2}_cdna/;
+	job_name=r02.pslFilter;
+	job_file=$dir0/$job_name.sh
+	>$job_file
+	g=${sp1}_genome_by_chr
+	genome_by_chr=${!g}
+	echo "if ! [ -f \"$dir0/blat.psl\" ] && ! [ -f \"$dir0/blat.psl.gz\" ]; then  cat \"$dir0/by_chr/\"*.blat.psl > \"$dir0/blat.psl\";  fi;   if ! [ -f \"$dir0/blat.psl\" ]; then gunzip -c \"$dir0/blat.psl.gz\" > \"$dir0/blat.psl\"; fi;    pslFilter -minUniqueMatch=300 -minAli=0 -noHead \"$dir0/blat.psl\" \"$dir0/blat.UM300.psl\";    pslFilter -minAli=400 -minUniqueMatch=0 -minMatch=0 -noHead \"$dir0/blat.psl\" \"$dir0/blat.qC40.psl\";    cat \"$dir0/blat.UM300.psl\"  \"$dir0/blat.qC40.psl\"  | sort -k10,10 -k12,13n -k14,14 -k16,17n | uniq > \"$dir0/blat.UM300_or_qC40.psl\";    for i in 5 6 7 8 9; do pslFilter -minAli=\${i}00 -minUniqueMatch=0 -minMatch=0 -noHead \"$dir0/blat.qC40.psl\" \"$dir0/blat.qC\${i}0.psl\"; done;" >> $job_file
+done
+done
+
+
+###############################################################################
+# tblastx
+###############################################################################
+
+tblastx_wd=$wd/big/tblastx
+if ! [ -d "$tblastx_wd" ]; then mkdir "$tblastx_wd"; fi
+
+job_name=r01.tblastx1
+job_file=$tblastx_wd/$job_name.sh
+if [ -f "$job_file" ]
+then
+	echo "$job_file exists. DO NOT overwrite."
+else
+	>$job_file
+	for sp1 in ZF CC GF
+	do
+	for sp2 in ZF CC GF
+	do
+	g=${sp1}_genome
+	genome_fa=${!g}
+	g=${sp2}_cdna1
+	cdna=${!g}
+	dir=$tblastx_wd/${sp1}_genome/${sp2}_cdna/;
+	if ! [ -d "$dir" ]; then mkdir -p "$dir"; fi
+
+	n=`cat $cdna | wc -l`
+	for i in `seq 1 $n`
+	do
+		chr=`cat $cdna | head -n $i | tail -n 1 | cut -f 1`;
+		query=`cat $cdna | head -n $i | tail -n 1 | cut -f 2`;
+		echo "tblastx  -db $genome_fa  -query $query  -outfmt '6 std btop score qlen slen gaps positive'  -evalue 1e-3  -num_threads 32  -max_target_seqs 100 | gzip -c > $dir/$i.m6.gz ; " >> $job_file
+	done
+
+	done
+	done
+fi
+
+# swarm -m blast --gres=lscratch:16 -g 16 -t 16 --time=128:00:00 -f r01.tblastx.sh -J r01.tblastx --logdir=r01.tblastx.log/
+# cmd=r01.tblastx1; if ! [ -d "$cmd.log" ]; then mkdir $cmd.log; fi; swarm -m blast --gres=lscratch:16 -g 16 -t 16 --time=128:00:00 -f $cmd.sh -J $cmd --logdir=$cmd.log/
+
+
+###############################################################################
+# blastn
+###############################################################################
+
+blastn_wd=$wd/big/blastn
+if ! [ -d "$blastn_wd" ]; then mkdir "$blastn_wd"; fi
+
+job_name=r01.blastn1
+job_file=$blastn_wd/$job_name.sh
+if [ -f "$job_file" ]
+then
+	echo "$job_file exists. DO NOT overwrite."
+else
+	>$job_file
+	for sp1 in ZF CC GF
+	do
+	for sp2 in ZF CC GF
+	do
+	g=${sp1}_genome
+	genome_fa=${!g}
+	g=${sp2}_cdna1
+	cdna=${!g}
+	dir=$blastn_wd/${sp1}_genome/${sp2}_cdna/;
+	if ! [ -d "$dir" ]; then mkdir -p "$dir"; fi
+
+	n=`cat $cdna | wc -l`
+	for i in `seq 1 $n`
+	do
+		chr=`cat $cdna | head -n $i | tail -n 1 | cut -f 1`;
+		query=`cat $cdna | head -n $i | tail -n 1 | cut -f 2`;
+		echo "blastn -task blastn -word_size 5 -db $genome_fa  -query $query  -outfmt '6 std btop score qlen slen gaps positive'  -evalue 1e-3  -num_threads 32 | gzip -c > $dir/$i.m6.gz ; " >> $job_file
+	done
+
+	done
+	done
+fi
+
+# cd blastn;  cmd=r01.blastn1; if ! [ -d "$cmd.log" ]; then mkdir $cmd.log; fi; swarm -m blast --gres=lscratch:8 -g 8 -t 16 --time=24:00:00 -f $cmd.sh -J $cmd --logdir=$cmd.log/;  cd ../
+

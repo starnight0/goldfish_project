@@ -1,0 +1,48 @@
+cp ../carAur01/contig.not_contained.* ./
+cp ../carAur01/contig.contained.names ./
+cat ../carAur01/contig.stat | cut -f 2- | sort -k1,1 > contig.stat
+
+~/my_program3/src/utility/czl_fasta_fetch -i ../carAur01/carAur01.sm.fa --list contig.not_contained.names -o carAur01a.sm.  -m 1
+samtools faidx  carAur01a.sm.fa 
+faToTwoBit  carAur01a.sm.fa  carAur01a.2bit
+faSize -detailed carAur01a.sm.fa > carAur01a.sm.fa.chromSizes
+~/my_program3/src/assembler/NL50.pl carAur01a.sm.fa.fai > carAur01a.sm.fa.NL50
+
+#
+zcat ../maker4a/t.blast/pairs/carAur.carAur.m6.gz | awk '$1!=$2' | sed 's/carAur|//g' | sort -k1,1 -k12,12nr > self.genes.m6.gz
+
+###################################
+# check gene similarity and rescue some contig (27)
+###################################
+head -n 1 ../carAur01/carAur01.gene.annot.sorted.gff  > carAur01a.gene.annot.sorted.gff 
+join -j 1 -t$'\t' contig.not_contained.names ../carAur01/carAur01.gene.annot.sorted.gff  >> carAur01a.gene.annot.gff 
+join -j 1 -t$'\t' contig.not_contained.names ../carAur01/carAur01.gene.annot.bgp > carAur01a.gene.annot.bgp
+join -j 1 -t$'\t' contig.contained.names ../carAur01/carAur01.gene.annot.bgp > deleted_gene.annot.bgp
+cat deleted_gene.annot.bgp | sort -k4,4 > deleted_gene.annot.sort_by_id.bgp 
+join -j 1 -t$'\t' contig.contained.names ../carAur01/carAur01.gene.annot.bgp | cut -f 4 | sort -k1,1 > deleted_gene.ids
+join -t$'\t' -j 1 deleted_gene.ids carAur01.genes.self_megablast.m6 | sort -k1,1 -k3,3nr | awk -F$'\t' -v p="" '{if ($1!=p) {print $0; p=$1} }' > deleted_genes.self_megablast.m6
+cat deleted_genes.self_megablast.m6 | awk '$3>=96' | cut -f 1 | sort > deleted_gene.I96.ids
+cat deleted_genes.self_megablast.m6 | awk '$3<96' | cut -f 1 | sort > deleted_gene.i96.ids
+join -t$'\t' -1 1 -2 4 deleted_gene.i96.ids deleted_gene.annot.sort_by_id.bgp | cut -f 2 | sort | uniq > contig.not_contained.append.names
+cat contig.not_contained.names contig.not_contained.append.names | sort > contig.not_contained.2.names
+cat contig.contained.names contig.not_contained.append.names | sort | uniq -u | sort > contig.contained.2.names
+join -j 1 -t$'\t' contig.contained.2.names ../carAur01/carAur01.gene.annot.bgp | cut -f 4 | sort -k1,1 > deleted_gene.2.ids
+join -t$'\t' -j 1 deleted_gene.2.ids carAur01.genes.self_megablast.m6 | sort -k1,1 -k3,3nr | awk -F$'\t' -v p="" '{if ($1!=p) {print $0; p=$1} }' > deleted_genes.2.self_megablast.m6
+
+join -t$'\t' -j 1 contig.contained.2.names contig.stat > deleted_contig.2.stat
+
+
+########## append rescue contigs into carAur01a ###############
+~/my_program3/src/utility/czl_fasta_fetch -i ../carAur01/carAur01.sm.fa --list contig.not_contained.2.names -o carAur01b.sm.  -m 1
+samtools faidx  carAur01b.sm.fa 
+faToTwoBit  carAur01b.sm.fa  carAur01b.2bit
+faSize -detailed carAur01b.sm.fa > carAur01b.sm.fa.chromSizes
+~/my_program3/src/assembler/NL50.pl carAur01b.sm.fa.fai > carAur01b.sm.fa.NL50
+###############
+
+
+~/my_program3/src/utility/czl_gff_util.pl stat -i carAur01a.gene.annot.gff -if gff3 -o carAur01a.gene.annot.gff.stat.
+
+
+############# repeats ###############
+join -t$'\t' -j 1 contig.not_contained.names ../carAur01/carAur01.repeatmasker.f.bgp | sort -k1,1 -k2,2n > carAur01a.repeatmasker.f.bgp 

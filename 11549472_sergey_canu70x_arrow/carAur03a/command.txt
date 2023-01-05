@@ -1,0 +1,21 @@
+kent=/data/genome/jksrc_v352/kent/src/hg/lib/
+
+asm=carAur03
+asm_dir=/home/chenz11/data/goldfish/11549472/sergey_canu70x/arrow/carAur03
+ucsc_asm_dir=~/data/datashare/fishCarAur1/$asm
+
+asm1=carAur01
+asm1_dir=/home/chenz11/data/goldfish/11549472/sergey_canu70x/arrow/carAur01
+
+lastz by_chr/tig00037772_arrow.fa by_chr/chrM.fa --output=tig00037772_arrow.chrM.axt --format=axt
+axtChain -linearGap=medium -faT -faQ tig00037772_arrow.chrM.axt by_chr/tig00037772_arrow.fa by_chr/chrM.fa tig00037772_arrow.chrM.chain
+
+
+# 
+cat $asm_dir/$asm.gene.annot.bgp | cut -f 4 | sort -k1,1 > $asm_dir/$asm.gene.annot.bgp.tid
+cat $asm_dir/$asm.gene.annot.bgp.tid $asm1_dir/carAur01.to_remove_tid.txt  | sort -k1,1 | uniq -d > $asm_dir/$asm.gene.annot.bgp.masked.tid
+cat $asm_dir/$asm.gene.annot.bgp.tid $asm_dir/$asm.gene.annot.bgp.masked.tid | sort -k1,1 | uniq -u > $asm_dir/$asm.gene.annot.bgp.kept.tid
+cat $asm_dir/$asm.gene.annot.bgp | awk -F$'\t' '{print $4"\t"$0}' | sort -k1,1 > a
+join -t$'\t' $asm_dir/$asm.gene.annot.bgp.kept.tid a | cut -f 2- | sort -k1,1 -k2,2n >  $asm_dir/$asm.gene.annot.kept.bgp
+~/my_program3/src/utility/czl_gff_util.pl stat -i carAur03.gene.annot.kept.bgp -if bgp -o carAur03.gene.annot.kept.bgp.
+# liftover gff.bed

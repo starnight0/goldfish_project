@@ -1,0 +1,15 @@
+sbatch --time=4:00:00 -p quick --job-name r01.blastn.miRNA -c 16 --mem=16g -o r01.blastn.miRNA.o%A r01.blastn.miRNA.sh
+49929195
+sbatch --time=4:00:00 -p quick --job-name r01.blastn.miRNA -c 8 --mem=16g -o r01.blastn.miRNA.o%A r01.blastn.miRNA.sh
+49962679
+49971959
+49974290
+
+sbatch --time=4:00:00 -p quick --job-name r02.miRNA.ex -c 2 --mem=16g -a 1-21 -o ex_split/r02.miRNA.ex.o%A.%a r02.miRNA.ex.sh
+49989332
+
+sbatch --time=4:00:00 -p quick --job-name r01.tRNAscan --mem=16g -o r01.tRNAscan.o%A r01.tRNAscan.sh
+49929196
+
+sbatch -c 2 --mem=8g -a 1-9 r01.rfam.sh
+50002115

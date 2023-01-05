@@ -1,0 +1,9 @@
+module load mafft
+# fast
+mafft --retree 1 pep.1.fa > pep.mafft.fa
+# slow
+mafft --maxiterate 1000 --globalpair pep.fa > pep.mafft.2
+
+# name must be short
+tranalign -asequence rna.1.fa -bsequence pep.mafft.fa -outseq pep.mafft.rna.fa
+

@@ -1,0 +1,395 @@
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s species3 -sp pairs3 -o out  --dry -t tree3.nw --ref GC
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s species4 -sp pairs4 -o out4 --dry -t tree4.nw --ref ZF
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s species4 -sp pairs4_notR -o out4_notR --dry -t tree4.nw --ref ZF
+
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_GC_CC_GF.input -sp ZF_GC_CC_GF.netSubset_pairs.input -o ZF_GC_CC_GF.netSubset.out --dry -t ZF_GC_CC_GF.tree  --ref GF
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_GC_CC.input -sp ZF_GC_CC.netSubset_pairs.input -o ZF_GC_CC.netSubset.out --dry -t ZF_GC_CC.tree  --ref CC
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_GC_GF.input -sp ZF_GC_GF.netSubset_pairs.input -o ZF_GC_GF.netSubset.out --dry -t ZF_GC_GF.tree  --ref GF
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s GC_CC_GF.input -sp GC_CC_GF.netSubset_pairs.input -o GC_CC_GF.netSubset.out --dry -t GC_CC_GF.tree  --ref GF
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_CC_GF.input -sp ZF_CC_GF.netSubset_pairs.input -o ZF_CC_GF.netSubset.out --dry -t ZF_CC_GF.tree  --ref GF
+
+
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_GC_CC_GF.input -sp ZF_GC_CC_GF.pairs.input -o ZF_GC_CC_GF.out --dry -t ZF_GC_CC_GF.tree  --ref GF
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_GC_CC.input -sp ZF_GC_CC.netSubset_pairs.input -o ZF_GC_CC.out --dry -t ZF_GC_CC.tree  --ref CC
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_GC_GF.input -sp ZF_GC_GF.netSubset_pairs.input -o ZF_GC_GF.out --dry -t ZF_GC_GF.tree  --ref GF
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s GC_CC_GF.input -sp GC_CC_GF.netSubset_pairs.input -o GC_CC_GF.out --dry -t GC_CC_GF.tree  --ref GF
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_CC_GF.input -sp ZF_CC_GF.netSubset_pairs.input -o ZF_CC_GF.out --dry -t ZF_CC_GF.tree  --ref GF
+
+
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_GC_CC_GF.input -sp ZF_GC_CC_GF.orig_pairs.input -o ZF_GC_CC_GF.orig.out --dry -t ZF_GC_CC_GF.tree  --ref GF
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_GC_CC.input -sp ZF_GC_CC.orig_pairs.input -o ZF_GC_CC.orig.out --dry -t ZF_GC_CC.tree  --ref CC
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_GC_GF.input -sp ZF_GC_GF.orig_pairs.input -o ZF_GC_GF.orig.out --dry -t ZF_GC_GF.tree  --ref GF
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s GC_CC_GF.input -sp GC_CC_GF.orig_pairs.input -o GC_CC_GF.orig.out --dry -t GC_CC_GF.tree  --ref GF
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_CC_GF.input -sp ZF_CC_GF.orig_pairs.input -o ZF_CC_GF.orig.out --dry -t ZF_CC_GF.tree  --ref GF
+
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_GC_CC_GF.input -sp ZF_GC_CC_GF.netSubset_pairs.input2 -o ZF_GC_CC_GF.netSubset.out2 --dry -t ZF_GC_CC_GF.tree  --ref GF
+
+cd ZF_GC_CC_GF.netSubset.out
+>CNE.counts.txt
+for sp in ZF GC CC GF
+do
+cat all.orig.roast_multic_$sp.$sp.phastcons.1.bed | awk -F$'\t' -v OFS=$'\t' -v sp=$sp -v n=0 -v m=0 '{n++;m+=$3-$2} END{print sp,n,m}' >> CNE.counts.txt
+done
+for sp in ZF GC CC GF
+do
+bedtools subtract -a all.orig.roast_multic_$sp.$sp.phastcons.1.bed -b ../../../carAur03/big/$sp.repeat_exon.1.bed | awk '$3-$2>=20' | sort -k1,1 -k2,2n > all.orig.roast_multic_$sp.$sp.phastcons.not_RE.1.bed 
+bedtools subtract -A -f 0.5 -a all.orig.roast_multic_$sp.$sp.phastcons.1.bed -b ../../../carAur03/big/$sp.repeat_exon.1.bed | awk '$3-$2>=20' | sort -k1,1 -k2,2n > all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed 
+done
+if ! [ -f all.orig.roast_multic_GF.GF.phastcons.not_RE.1.0.bed ]; then mv all.orig.roast_multic_GF.GF.phastcons.not_RE.1.bed all.orig.roast_multic_GF.GF.phastcons.not_RE.1.0.bed ; fi
+join -v 1 -j 1 -t $'\t' all.orig.roast_multic_GF.GF.phastcons.not_RE.1.0.bed /data/projects/burgess/zelin/goldfish/11549472/sergey_canu70x/arrow/carAur01/carAur01.masked_ctg_id > all.orig.roast_multic_GF.GF.phastcons.not_RE.1.bed 
+if ! [ -f all.orig.roast_multic_GF.GF.phastcons.not_RE.2.0.bed ]; then mv all.orig.roast_multic_GF.GF.phastcons.not_RE.2.bed all.orig.roast_multic_GF.GF.phastcons.not_RE.2.0.bed ; fi
+join -v 1 -j 1 -t $'\t' all.orig.roast_multic_GF.GF.phastcons.not_RE.2.0.bed /data/projects/burgess/zelin/goldfish/11549472/sergey_canu70x/arrow/carAur01/carAur01.masked_ctg_id > all.orig.roast_multic_GF.GF.phastcons.not_RE.2.bed 
+
+>CNE.not_RE.counts.txt
+>CNE.not_RE.counts.2.txt
+for sp in ZF GC CC GF
+do
+    cat all.orig.roast_multic_$sp.$sp.phastcons.not_RE.1.bed | awk -F$'\t' -v OFS=$'\t' -v sp=$sp -v n=0 -v m=0 '{n++;m+=$3-$2} END{print sp,n,m}' >> CNE.not_RE.counts.txt
+    cat all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed | awk -F$'\t' -v OFS=$'\t' -v sp=$sp -v n=0 -v m=0 '{n++;m+=$3-$2} END{print sp,n,m}' >> CNE.not_RE.counts.2.txt
+done
+cd ../
+
+cat ZF_GC_CC_GF.netSubset.out/all.orig.roast_multic_merged.maf.split_by_sp/*CC_*GF*.f2.GF.bed | bedtools sort -i stdin | bedtools merge -i stdin > a1
+cat ZF_GC_CC_GF.netSubset.out/all.orig.roast_multic_merged.maf.split_by_sp/*CC_*GF*.f2.CC.bed | bedtools sort -i stdin | bedtools merge -i stdin > a2
+
+bedtools subtract -A -f 0.1 -nonamecheck -a ZF_GC_CC_GF.netSubset.out/all.orig.roast_multic_GF.GF.phastcons.1.bed -b ZF_GC_CC_GF.netSubset.out/all.orig.roast_multic_GF.f.GF.phastcons.1.bed    | bedtools subtract -A -f 0.1 -nonamecheck -a stdin -b ZF_CC_GF.netSubset.out/all.orig.roast_multic_GF.f.GF.phastcons.1.bed    | bedtools subtract -A -f 0.1 -nonamecheck -a stdin -b GC_CC_GF.netSubset.out/all.orig.roast_multic_GF.f.GF.phastcons.1.bed    | bedtools subtract -A -f 0.1 -nonamecheck -a stdin -b a1 > ZF_GC_CC_GF.netSubset.out/all.orig.roast_multic_GF.GF.phastcons.not_CC.1.bed 
+
+bedtools subtract -A -f 0.1 -nonamecheck -a ZF_GC_CC_GF.netSubset.out/all.orig.roast_multic_GF.GF.phastcons.not_CC.1.bed -b ../../carAur03/big/GF.repeat_exon.merged.bed >  ZF_GC_CC_GF.netSubset.out/all.orig.roast_multic_GF.GF.phastcons.not_repeat_exon.not_CC.1.bed 
+
+bedtools subtract -A -f 0.1 -nonamecheck -a ZF_GC_CC_GF.netSubset.out/all.orig.roast_multic_CC.CC.phastcons.1.bed -b ZF_GC_CC_GF.netSubset.out/all.orig.roast_multic_CC.f.CC.phastcons.1.bed    | bedtools subtract -A -f 0.1 -nonamecheck -a stdin -b ZF_CC_GF.netSubset.out/all.orig.roast_multic_CC.f.CC.phastcons.1.bed    | bedtools subtract -A -f 0.1 -nonamecheck -a stdin -b GC_CC_GF.netSubset.out/all.orig.roast_multic_CC.f.CC.phastcons.1.bed    | bedtools subtract -A -f 0.1 -nonamecheck -a stdin -b a2 > ZF_GC_CC_GF.netSubset.out/all.orig.roast_multic_CC.CC.phastcons.not_GF.1.bed 
+
+bedtools subtract -A -f 0.1 -nonamecheck -a ZF_GC_CC_GF.netSubset.out/all.orig.roast_multic_CC.CC.phastcons.not_GF.1.bed -b ../../carAur03/big/CC.repeat_exon.merged.no_ver.bed >  ZF_GC_CC_GF.netSubset.out/all.orig.roast_multic_CC.CC.phastcons.not_repeat_exon.not_GF.1.bed 
+
+
+cd ZF_GC_CC_GF.netSubset.out
+for sp in GF GC CC GF
+do
+    mkdir all.orig.roast_multic_$sp.maf.split_by_sp; ~/my_program3/src/utility/czl_maf_split_by_species.pl -i all.orig.roast_multic_$sp.maf -o all.orig.roast_multic_$sp.maf.split_by_sp/ > all.orig.roast_multic_$sp.maf.split_by_sp/counts.txt 
+done
+
+mkdir all.orig.roast_multic_merged.maf.split_by_sp
+for t in `ls all.orig.roast_multic_??.maf.split_by_sp/*.maf | sed 's/^.*\///' | sed 's/\.maf$//' | sort | uniq`
+do
+    echo $t
+    cat all.orig.roast_multic_??.maf.split_by_sp/$t.maf | mafFilter -minScore=1000  stdin > all.orig.roast_multic_merged.maf.split_by_sp/$t.f2.maf
+    for sp in ZF GC CC GF
+    do
+        if ! [ -z $(echo $t | grep $sp) ]
+        then
+#            cat all.orig.roast_multic_merged.maf.split_by_sp/$t.f2.maf | maf_project /dev/stdin $sp | mafToBigMaf $sp stdin all.orig.roast_multic_merged.maf.split_by_sp/$t.f2.$sp.bigmaf
+            cat all.orig.roast_multic_merged.maf.split_by_sp/$t.f2.maf | grep '^s '$sp'\.' | awk -v OFS=$'\t' '{gsub(/^'$sp'\./,"",$2); if ($5=="+") {print $2,$3,$3+$4,".","1000","+"} else {print $2,$6-$3-$4,$6-$3,".","1000","-"} }' | sort -k1,1 -k2,2n -S 2G > all.orig.roast_multic_merged.maf.split_by_sp/$t.f2.$sp.bed
+            bedtools merge -i all.orig.roast_multic_merged.maf.split_by_sp/$t.f2.$sp.bed > all.orig.roast_multic_merged.maf.split_by_sp/$t.f2.$sp.merged.bed 
+        fi
+    done
+done
+
+##############################
+
+for f in `ls *.GF.only.bed *.GF.only.merged.bed`
+do
+    echo $f
+    f1=`echo $f | sed 's/bed/0.bed/'`;
+    if ! [ -f "$f1" ]; then mv $f $f1; fi
+    join -v 1 -j 1 -t $'\t' $f1 /data/projects/burgess/zelin/goldfish/11549472/sergey_canu70x/arrow/carAur01/carAur01.masked_ctg_id > $f
+done
+
+cd all.orig.roast_multic_merged.maf.split_by_sp
+for sp in ZF GC GF CC
+do
+    echo $sp
+    for f in `ls *.$sp.only.merged.bed`
+    do
+        echo $f
+#        f1=`echo $f | sed 's/bed$/not_RE.bed/'`
+#        bedtools subtract -A -f 0.3 -a $f -b /data/projects/burgess/zelin/goldfish/11549472/sergey_canu70x/arrow/carAur03/big/$sp.repeat_exon.1.bed > $f1
+        f2=`echo $f | sed 's/merged.bed$/bed/'`
+        f3=`echo $f | sed 's/merged.bed$/not_RE.bed/'`
+        bedtools subtract -f 0.3 -a $f2 -b /data/projects/burgess/zelin/goldfish/11549472/sergey_canu70x/arrow/carAur03/big/$sp.repeat_exon.1.bed | awk '$3-$2>=20' | sort -k1,1 -k2,2n > $f3
+        f4=`echo $f | sed 's/merged.bed$/not_RE.merged.bed/'`
+        bedtools merge -i $f3 > $f4
+    done
+done
+echo | awk -v OFS=$'\t' '{print "","CC","GC","GF","ZF"}' > not_RE.counts.txt
+echo | awk -v OFS=$'\t' '{print "","CC","GC","GF","ZF"}' > not_RE.bp.txt
+for t in `cat sps`
+do
+out1=$t
+out2=$t
+for sp in CC GC GF ZF
+do
+    a=`echo $t | grep $sp`;
+    f=$t.$sp.only.not_RE.merged.bed
+    if [ -z "$a" ]; then n=0; m=0; else n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+    out1=$out1$'\t'$n
+    out2=$out2$'\t'$m
+done
+echo "$out1" >> not_RE.counts.txt
+echo "$out2" >> not_RE.bp.txt
+done
+
+###############################
+# fetch most conserved CNE
+###############################
+for sp in ZF GC CC GF;
+do
+cp ../all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed a.$sp;
+done
+for sps in `cat sps1`
+do
+for sp in `echo $sps | sed 's/_/ /g'`
+do 
+echo $sps $sp; 
+f=$sps.$sp.only.bed
+f1=$sps.$sp.only.not_RE.2.bed
+bedtools intersect -a a.$sp -b $f -wa -u | sort -k1,1 -k2,2n > $f1;
+bedtools subtract -A -f 0.5 -a a.$sp -b $f1 -wa -u | sort -k1,1 -k2,2n > a1; mv a1 a.$sp;
+done; 
+done;
+
+>CNE.not_RE.counts.3.txt
+>CNE.not_RE.bp.3.txt
+for t in `cat sps`
+do
+out1=$t
+out2=$t
+for sp in CC GC GF ZF
+do
+    a=`echo $t | grep $sp`;
+    f=$t.$sp.only.not_RE.2.bed
+    if [ -z "$a" ]; then n=0; m=0; else n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+    out1=$out1$'\t'$n
+    out2=$out2$'\t'$m
+done
+echo "$out1" >> CNE.not_RE.counts.3.txt
+echo "$out2" >> CNE.not_RE.bp.3.txt
+done
+
+
+
+#######################################################
+~/my_program3/src/ohnolog/czl_chain_multi4.pl -s ZF_GC_CC2_GF2.input -sp ZF_GC_CC2_GF2.netSubset_pairs.input -o ZF_GC_CC2_GF2.netSubset.out --dry -t ZF_GC_CC2_GF2.tree  --ref GF
+cd ZF_GC_CC2_GF2.netSubset.out
+#######################
+# not exon and not repeat
+#######################
+for sp in ZF GC CC1 CC2 GF1 GF2
+do
+sp1=`echo $sp | sed 's/[0-9]$//'`;
+bedtools subtract -a all.orig.roast_multic_$sp.$sp.phastcons.1.bed -b ../../../carAur03/big/$sp1.repeat_exon.1.bed | awk '$3-$2>=20' | sort -k1,1 -k2,2n > all.orig.roast_multic_$sp.$sp.phastcons.not_RE.1.bed 
+bedtools subtract -A -f 0.5 -a all.orig.roast_multic_$sp.$sp.phastcons.1.bed -b ../../../carAur03/big/$sp1.repeat_exon.1.bed | awk '$3-$2>=20' | sort -k1,1 -k2,2n > all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed 
+done
+for sp in GF1 GF2
+do
+    if ! [ -f all.orig.roast_multic_$sp.$sp.phastcons.not_RE.1.0.bed ]; then mv all.orig.roast_multic_$sp.$sp.phastcons.not_RE.1.bed all.orig.roast_multic_$sp.$sp.phastcons.not_RE.1.0.bed ; fi
+    join -v 1 -j 1 -t $'\t' all.orig.roast_multic_$sp.$sp.phastcons.not_RE.1.0.bed /data/projects/burgess/zelin/goldfish/11549472/sergey_canu70x/arrow/carAur01/carAur01.masked_ctg_id | sort -k1,1 -k2,2n > all.orig.roast_multic_$sp.$sp.phastcons.not_RE.1.bed 
+    if ! [ -f all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.0.bed ]; then mv all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.0.bed ; fi
+    join -v 1 -j 1 -t $'\t' all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.0.bed /data/projects/burgess/zelin/goldfish/11549472/sergey_canu70x/arrow/carAur01/carAur01.masked_ctg_id | sort -k1,1 -k2,2n > all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed 
+done
+
+#######################
+# get counts
+#######################
+>CNE.counts.txt
+>CNE.not_RE.counts.txt
+>CNE.not_RE.counts.2.txt
+for sp in ZF GC CC1 CC2 GF1 GF2
+do
+    cat all.orig.roast_multic_$sp.$sp.phastcons.1.bed | awk -F$'\t' -v OFS=$'\t' -v sp=$sp -v n=0 -v m=0 '{n++;m+=$3-$2} END{print sp,n,m}' >> CNE.counts.txt
+    cat all.orig.roast_multic_$sp.$sp.phastcons.not_RE.1.bed | awk -F$'\t' -v OFS=$'\t' -v sp=$sp -v n=0 -v m=0 '{n++;m+=$3-$2} END{print sp,n,m}' >> CNE.not_RE.counts.txt
+    cat all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed | awk -F$'\t' -v OFS=$'\t' -v sp=$sp -v n=0 -v m=0 '{n++;m+=$3-$2} END{print sp,n,m}' >> CNE.not_RE.counts.2.txt
+done
+
+##############################
+# by alignment
+##############################
+cd ZF_GC_CC_GF.netSubset.out
+mkdir all.orig.roast_multic_merged.maf.split_by_sp;
+~/my_program3/src/utility/czl_maf_split_by_species.pl -i all.orig.roast_multic_merged.f2.maf -o all.orig.roast_multic_merged.maf.split_by_sp/ --do-ovl
+
+###############################
+# fetch most conserved CNE
+###############################
+for sp in ZF GC CC1 CC2 GF1 GF2;
+do
+cp ../all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed a.$sp;
+done
+for sps in `cat sps1`
+do
+for sp in `echo $sps | sed 's/_/ /g'`
+do 
+echo $sps $sp; 
+f=$sps.$sp.only.bed
+f1=$sps.$sp.only.not_RE.2.bed
+bedtools intersect -a a.$sp -b $f -wa -u | sort -k1,1 -k2,2n > $f1;
+bedtools subtract -A -f 0.5 -a a.$sp -b $f1 -wa -u | sort -k1,1 -k2,2n > a1; mv a1 a.$sp;
+done; 
+done;
+
+echo 'SPS ZF GC CC1 CC2 GF1 GF2' | sed 's/ /\t/g' >CNE.not_RE.counts.3.txt
+echo 'SPS ZF GC CC1 CC2 GF1 GF2' | sed 's/ /\t/g' >CNE.not_RE.bp.3.txt
+for t in `cat sps`
+do
+out1=$t
+out2=$t
+for sp in ZF GC CC1 CC2 GF1 GF2
+do
+    a=`echo $t | grep $sp`;
+    f=$t.$sp.only.not_RE.2.bed
+    if [ -z "$a" ]; then n=0; m=0; else n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+    out1=$out1$'\t'$n
+    out2=$out2$'\t'$m
+done
+echo "$out1" >> CNE.not_RE.counts.3.txt
+echo "$out2" >> CNE.not_RE.bp.3.txt
+done
+
+#################################################
+# with hetezygous region removed
+#################################################
+
+cat all.orig.roast_multic_??.maf all.orig.roast_multic_???.maf | mafFilter -minScore=1000  stdin > all.orig.roast_multic_merged.f2.maf
+#filter heterozygous contigs
+cat all.orig.roast_multic_merged.f2.maf | perl -e '
+my %mask;
+open IN, "<../../../carAur01/carAur01.masked_ctg_id";
+while(<IN>) { if (m/^#/ || m/^\s*$/) {next;} chomp; $mask{$_}++; }
+close IN; 
+my @a; 
+my $filt=0;
+while(<>) {
+	if (m/^#/) {next;} chomp;
+	if (m/^a/) {
+		push @a, $_;
+	} elsif (m/^s/) {
+		my @t = split / /, $_;
+		my ($sp,$chr) = split /\./, $t[1];
+		if ($sp=~m/^GF/ && exists $mask{$chr}) { $filt=1; @a=();}
+		else { $filt=0; push @a,$_; }
+	} elsif (m/^\s*$/) {
+		if (!$filt) {
+			foreach my $a (@a) { print $a, "\n"; }
+			print "\n";
+		}
+		@a=();
+	}
+}' > all.orig.roast_multic_merged.f2.no_het.maf
+mkdir all.orig.roast_multic_merged.no_het.maf.split_by_sp;
+~/my_program3/src/utility/czl_maf_split_by_species.pl -i all.orig.roast_multic_merged.f2.no_het.maf -o all.orig.roast_multic_merged.no_het.maf.split_by_sp/ --do-ovl
+
+###############################
+# fetch most conserved CNE
+###############################
+cd all.orig.roast_multic_merged.no_het.maf.split_by_sp/ 
+for sp in ZF GC CC1 CC2 GF1 GF2;
+do
+cp ../all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed a.$sp;
+done
+for sps in `cat sps1`
+do
+for sp in `echo $sps | sed 's/_/ /g'`
+do 
+echo $sps $sp; 
+f=$sps.$sp.only.bed
+f1=$sps.$sp.only.not_RE.2.bed
+bedtools intersect -a a.$sp -b $f -wa -u | sort -k1,1 -k2,2n > $f1;
+bedtools subtract -A -f 0.5 -a a.$sp -b $f1 -wa -u | sort -k1,1 -k2,2n > a.$sp.tmp; mv a.$sp.tmp a.$sp;
+done; 
+done;
+
+for sp in ZF GC CC1 CC2 GF1 GF2;
+do
+cp ../all.orig.roast_multic_$sp.$sp.phastcons.not_RE.2.bed a1.$sp;
+done
+for sps in `cat sps1`
+do
+for sp in `echo $sps | sed 's/_/ /g'`
+do 
+echo $sps $sp; 
+f=$sps.$sp.only1.bed
+f1=$sps.$sp.only1.not_RE.2.bed
+bedtools intersect -a a1.$sp -b $f -wa -u | sort -k1,1 -k2,2n > $f1;
+bedtools subtract -A -f 0.5 -a a1.$sp -b $f1 -wa -u | sort -k1,1 -k2,2n > a1.$sp.tmp; mv a1.$sp.tmp a1.$sp;
+done; 
+done;
+
+echo 'SPS ZF GC CC1 CC2 GF1 GF2' | sed 's/ /\t/g' >CNE.not_RE.counts.3.txt
+echo 'SPS ZF GC CC1 CC2 GF1 GF2' | sed 's/ /\t/g' >CNE.not_RE.bp.3.txt
+for t in `cat sps`
+do
+out1=$t
+out2=$t
+for sp in ZF GC CC1 CC2 GF1 GF2
+do
+    a=`echo $t | grep $sp`;
+    f=$t.$sp.only.not_RE.2.bed
+	n=0;
+	m=0;
+    if ! [ -z "$a" ]; then n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+    out1=$out1$'\t'$n
+    out2=$out2$'\t'$m
+done
+echo "$out1" >> CNE.not_RE.counts.3.txt
+echo "$out2" >> CNE.not_RE.bp.3.txt
+done
+
+
+echo 'SPS ZF GC CC1 CC2 GF1 GF2' | sed 's/ /\t/g' >CNE.not_RE.counts.4.txt
+echo 'SPS ZF GC CC1 CC2 GF1 GF2' | sed 's/ /\t/g' >CNE.not_RE.bp.4.txt
+for t in `cat sps`
+do
+out1=$t
+out2=$t
+for sp in ZF GC CC1 CC2 GF1 GF2
+do
+    a=`echo $t | grep $sp`;
+    f=$t.$sp.only1.not_RE.2.bed
+	n=0;
+	m=0;
+    if ! [ -z "$a" ]; then n=`cat $f | wc -l`; m=`cat $f | awk -F$'\t' -v n=0 '{n+=$3-$2} END{print n}'`; fi
+    out1=$out1$'\t'$n
+    out2=$out2$'\t'$m
+done
+echo "$out1" >> CNE.not_RE.counts.4.txt
+echo "$out2" >> CNE.not_RE.bp.4.txt
+done
+
+####################################################
+# multic
+####################################################
+for sp in ZF GC GF CC
+do
+	cat all.orig.roast_multic_$sp.maf | mafFilter -minScore=1000  stdin | perl -e '
+	my %mask;
+	open IN, "<../../../carAur01/carAur01.masked_ctg_id";
+	while(<IN>) { if (m/^#/ || m/^\s*$/) {next;} chomp; $mask{$_}++; }
+	close IN; 
+	my @a; 
+	my $filt=0;
+	while(<>) {
+		if (m/^#/) {next;} chomp;
+		if (m/^a/) {
+			push @a, $_;
+		} elsif (m/^s/) {
+			my @t = split / /, $_;
+			my ($sp,$chr) = split /\./, $t[1];
+			if ($sp=~m/^GF/ && exists $mask{$chr}) { $filt=1; @a=();}
+			else { $filt=0; push @a,$_; }
+		} elsif (m/^\s*$/) {
+			if (!$filt) {
+				foreach my $a (@a) { print $a, "\n"; }
+				print "\n";
+			}
+			@a=();
+		}
+	}' > all.orig.roast_multic_$sp.no_het.maf
+	mkdir all.orig.roast_multic_$sp.no_het.maf.split_by_sp;
+	~/my_program3/src/utility/czl_maf_split_by_species.pl -i all.orig.roast_multic_$sp.no_het.maf -o all.orig.roast_multic_$sp.no_het.maf.split_by_sp/
+	cd all.orig.roast_multic_$sp.no_het.maf.split_by_sp
+	for f in `ls *.maf`
+	do
+		~/my_program3/src/utility/czl_maf_to_bigmaf.pl -i $f -o - -s $sp | cut -f 1-3 | sort -k1,1 -k2,2n > $f.bed
+        bedtools subtract -a $f.bed -b /data/projects/burgess/zelin/goldfish/11549472/sergey_canu70x/arrow/carAur03/big/$sp.repeat_exon.1.bed | awk '$3-$2>=20' > $f.not_RE.bed
+done
+cat all.orig.roast_multic_??.no_het.maf | ~/my_program3/src/utility/czl_maf_split_by_species.pl -i - -o all.orig.roast_multic_merged.no_het.maf.split_by_sp/ --do-ovl
+
+
